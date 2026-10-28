@@ -14,8 +14,8 @@ Last filed: 2026-10-28
 | E05 | [#5](https://github.com/mikolajjenczyk/test_athletica/issues/5) | Raporty i widok dyrektora | — | — | no |
 | E06 | [#6](https://github.com/mikolajjenczyk/test_athletica/issues/6) | Cele, zalecenia i klub | — | — | no |
 | E07 | [#7](https://github.com/mikolajjenczyk/test_athletica/issues/7) | Później (zaparkowane) | — | — | no |
-| E01-S01 | [#8](https://github.com/mikolajjenczyk/test_athletica/issues/8) | Dzienne RPE i samopoczucie z arkuszy, luki nazwane przed zapisem | #1 | — | no |
-| E01-S01-T01 | [#23](https://github.com/mikolajjenczyk/test_athletica/issues/23) | Dostęp do arkuszy klubu (Q81) | #8 | — | no |
+| E01-S01 | [#8](https://github.com/mikolajjenczyk/test_athletica/issues/8) | Dzienne RPE i samopoczucie z arkusza wgranego z komputera, luki nazwane przed zapisem | #1 | — | no |
+| E01-S01-T01 | [#23](https://github.com/mikolajjenczyk/test_athletica/issues/23) | Format wgrywanego arkusza i jego odczyt (D301) | #8 | — | no |
 | E01-S02 | [#9](https://github.com/mikolajjenczyk/test_athletica/issues/9) | Pulpit: obciążenie, samopoczucie, „Zwróć uwagę” | #1 | #8 | no |
 | E02-S01 | [#10](https://github.com/mikolajjenczyk/test_athletica/issues/10) | „Tryb boisko” na telefonie, także bez zasięgu | #2 | — | no |
 | E02-S02 | [#11](https://github.com/mikolajjenczyk/test_athletica/issues/11) | Poprawki, uzupełnienia, CSV, stany luk | #2 | #10 | no |
