@@ -35,6 +35,7 @@ export function TeamSection({ teams, isLoading, error, canManage, onRetry, onCha
   const t = useT()
   const [dialog, setDialog] = React.useState<{ mode: 'create' } | { mode: 'edit'; row: TeamRow } | null>(null)
   const { deleteRow, ConfirmDialogElement } = useClubRowDelete('athletes-teams-table')
+  const refreshAfterClose = React.useRef(false)
 
   const fields = React.useMemo<CrudField[]>(() => [
     {
@@ -88,9 +89,17 @@ export function TeamSection({ teams, isLoading, error, canManage, onRetry, onCha
     } catch (err) {
       rethrowTranslated(err, t, 'athletes.team.errors.save')
     }
+    // Refresh only after the dialog has closed: the refresh can swap the empty state
+    // (which holds the trigger button) for the table.
+    refreshAfterClose.current = true
     setDialog(null)
+  }, [dialog, t])
+
+  const handleAfterClose = React.useCallback(() => {
+    if (!refreshAfterClose.current) return
+    refreshAfterClose.current = false
     onChanged()
-  }, [dialog, onChanged, t])
+  }, [onChanged])
 
   const createButton = canManage ? (
     <Button type="button" onClick={() => setDialog({ mode: 'create' })}>
@@ -176,6 +185,7 @@ export function TeamSection({ teams, isLoading, error, canManage, onRetry, onCha
         fields={fields}
         initialValues={initialValues}
         onSubmit={handleSubmit}
+        onAfterClose={handleAfterClose}
       />
       {ConfirmDialogElement}
     </>

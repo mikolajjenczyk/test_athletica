@@ -381,7 +381,7 @@ export function AccountsTable() {
         actions={(
           <div className="flex items-center gap-2">
             <Button asChild type="button" variant="destructive">
-              <Link href="/backend/club/delete">{t('athletes.accounts.actions.deleteClub', 'Usuń dane klubu')}</Link>
+              <Link href="/backend/accounts/delete-club">{t('athletes.accounts.actions.deleteClub', 'Usuń dane klubu')}</Link>
             </Button>
             {inviteButton}
           </div>

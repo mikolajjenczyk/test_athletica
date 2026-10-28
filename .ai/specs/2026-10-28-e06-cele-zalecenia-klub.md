@@ -112,7 +112,7 @@ Nowy moduł aplikacji `athletes` (id z PRD, `src/modules/athletes/`), zbudowany 
 
 ```text
 Administrator klubu -> /backend/club, /players -> athletes commands -> athletes_team / _position / _player
-                    -> /backend/club/accounts -> POST /api/auth/users (sendInviteEmail, organizationId = kontekst)
+                    -> /backend/accounts -> POST /api/auth/users (sendInviteEmail, organizationId = kontekst)
                                                        -> PUT /api/auth/users (isConfirmed=false)
 Trener -> /backend/goals, /season-plan, /recommendations -> athletes commands -> athletes_goal / _season_plan / _recommendation
                                                                  -> athletes.*.created|updated|deleted (po commicie)
@@ -136,7 +136,7 @@ E04 (później) -> czyta cele i plan przez API/serwis modułu
 
 ### Journey J-002 — Zaproszenie i dezaktywacja
 
-1. Administrator otwiera „Status konta” (`/backend/club/accounts`), klika „Zaproś”, podaje e-mail, imię i rolę klubową.
+1. Administrator otwiera „Status konta” (`/backend/accounts`), klika „Zaproś”, podaje e-mail, imię i rolę klubową.
 2. System tworzy użytkownika w `auth` w organizacji administratora z `sendInviteEmail`; lista pokazuje „Zaproszenie oczekuje”.
 3. Zaproszony ustawia hasło; status zmienia się na „Aktywne”. Administrator może ponowić zaproszenie (limit) albo dezaktywować konto — dostęp znika natychmiast.
 4. Błąd: e-mail już istnieje w innym klubie → komunikat bez ujawniania, który to klub; próba nadania roli spoza trzech ról klubowych → 403.
@@ -163,8 +163,8 @@ Referencje: `.ai/guides/backend-ui.md`, `node_modules/@open-mercato/core/src/mod
 |---|---|---|---|---|---|---|
 | `/backend/club` | „Profil klubu”: nazwa klubu, drużyna, pozycje; utwórz/edytuj drużynę | `GET/POST/PUT /api/athletes/teams`, `/api/athletes/positions` | `example/backend/todos/page.tsx` | `Page`, `PageBody`, `CrudForm`, `DataTable` | loading, empty („Załóż drużynę”), error, conflict, permission denied | REQ-001, REQ-004 |
 | `/backend/players` (+ `/create`, `/[id]/edit`) | Lista i edycja zawodników | `/api/athletes/players` | `example/components/TodosTable.tsx`, `TodoForm.tsx` | `DataTable`, `CrudForm` | j.w. + walidacja dat | REQ-001, REQ-004, REQ-005 |
-| `/backend/club/accounts` | „Status konta”: konta klubu, statusy, „Zaproś”, „Wyślij ponownie”, „Dezaktywuj” | `GET/POST/PUT /api/auth/users`, `POST /api/auth/users/resend-invite` | `auth/backend/users` | `DataTable`, dialog `CrudForm`, potwierdzenie destrukcyjne | j.w. + limit ponowień | REQ-002, REQ-003 |
-| `/backend/club/delete` | Zgrubne usunięcie danych klubu z potwierdzeniem (wpisanie nazwy klubu) | `POST /api/athletes/club/delete-request` | potwierdzenia destrukcyjne w `auth/backend/users/[id]` | `Page`, dialog potwierdzenia | error, success, permission denied | REQ-003 |
+| `/backend/accounts` | „Status konta”: konta klubu, statusy, „Zaproś”, „Wyślij ponownie”, „Dezaktywuj” | `GET/POST/PUT /api/auth/users`, `POST /api/auth/users/resend-invite` | `auth/backend/users` | `DataTable`, dialog `CrudForm`, potwierdzenie destrukcyjne | j.w. + limit ponowień | REQ-002, REQ-003 |
+| `/backend/accounts/delete-club` | Zgrubne usunięcie danych klubu z potwierdzeniem (wpisanie nazwy klubu) | `POST /api/athletes/club/delete-request` | potwierdzenia destrukcyjne w `auth/backend/users/[id]` | `Page`, dialog potwierdzenia | error, success, permission denied | REQ-003 |
 | `/backend/goals` | „Cele”: cele drużyny, zawodników i testów; odhaczanie | `/api/athletes/goals` | `example/components/TodosTable.tsx` | `DataTable`, `CrudForm` | j.w.; tryb podglądu dla dyrektora | REQ-006, REQ-007 |
 | `/backend/season-plan` | „Plan sezonu”: cel sezonu, wydarzenia, typowy tydzień | `/api/athletes/season-plans`, `/api/athletes/season-events` | `example/backend/todos/[id]/edit/page.tsx` | `CrudForm`, `DataTable` (wydarzenia) | j.w. | REQ-008 |
 | `/backend/recommendations` (+ `/create`, `/[id]`) | Zalecenia, testy ze stanem, ocena | `/api/athletes/recommendations` | `example/components/TodosTable.tsx`, `TodoForm.tsx` | `DataTable`, `CrudForm` | j.w.; dyrektor bez tekstu trenera | REQ-009, REQ-010 |
@@ -185,7 +185,7 @@ Odwołania do rekordów (drużyna, pozycja, zawodnik, test, rola klubowa) to kon
 | Status konta | „Nikt jeszcze nie został zaproszony” + „Zaproś” | j.w. | potwierdzenie dezaktywacji z fokusem na „Anuluj” |
 | Cele / Plan / Zalecenia | lokalizowane wyjaśnienie + akcja główna | telefon 390 px: lista jednokolumnowa, cele dotyku 44 px (NFR-007) | Enter zapisuje, Esc anuluje, komunikaty przez region live |
 
-### `/backend/club/accounts` — Status konta
+### `/backend/accounts` — Status konta
 
 ```text
 ┌────────────────────────────────────────────────────────────┐
@@ -433,7 +433,7 @@ Kroki:
 
 | Phase | State | Evidence |
 |---|---|---|
-| 1 | implemented, pending verification in app | branch `feat/e06-phase-1-club`: moduł `athletes` (encje, komendy z undo, trasy CRUD/opcje/`invite-status`/`club/delete-request`, role klubowe, strony `/backend/club`, `/backend/players`, `/backend/club/accounts`, `/backend/club/delete`); testy jednostkowe 10/10; test API `.ai/qa/tests/athletes/TC-ATH-001` napisany, nieuruchomiony (brak środowiska); migracja wygenerowana, niezastosowana |
+| 1 | implemented, pending verification in app | branch `feat/e06-phase-1-club`: moduł `athletes` (encje, komendy z undo, trasy CRUD/opcje/`invite-status`/`club/delete-request`, role klubowe, strony `/backend/club`, `/backend/players`, `/backend/accounts`, `/backend/accounts/delete-club`); testy jednostkowe 10/10; test API `.ai/qa/tests/athletes/TC-ATH-001` napisany, nieuruchomiony (brak środowiska); migracja wygenerowana, niezastosowana |
 | 2 | pending | — |
 | 3 | blocked | Q-002, bramka SPEC 2 |
 

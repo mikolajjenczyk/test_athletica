@@ -13,7 +13,7 @@ import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { useCurrentClub } from './AccountClubScope'
 
 const CONTEXT_ID = 'athletes-club:delete'
-const ACCOUNTS_HREF = '/backend/club/accounts'
+const ACCOUNTS_HREF = '/backend/accounts'
 
 type DeleteResult = {
   ok?: boolean

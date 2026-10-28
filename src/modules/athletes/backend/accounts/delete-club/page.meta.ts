@@ -7,7 +7,7 @@ export const metadata = {
   pageGroupKey: 'athletes.club',
   navHidden: true,
   breadcrumb: [
-    { label: 'Status konta', labelKey: 'athletes.nav.accounts', href: '/backend/club/accounts' },
+    { label: 'Status konta', labelKey: 'athletes.nav.accounts', href: '/backend/accounts' },
     { label: 'Usuń dane klubu', labelKey: 'athletes.clubDelete.title' },
   ],
 }

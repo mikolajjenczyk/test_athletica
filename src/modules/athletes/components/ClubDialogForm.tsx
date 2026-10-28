@@ -21,6 +21,12 @@ type ClubDialogFormProps<TValues extends Record<string, unknown>> = {
   fields: CrudField[]
   initialValues: Partial<TValues>
   onSubmit: (values: TValues) => Promise<void>
+  /**
+   * Runs once the dialog has finished closing. Refresh data here when the refresh can
+   * unmount the element that opened the dialog (e.g. an empty state swapped for a table):
+   * unmounting it mid-close left the dialog shell stuck on screen.
+   */
+  onAfterClose?: () => void
 }
 
 /**
@@ -39,6 +45,7 @@ export function ClubDialogForm<TValues extends Record<string, unknown>>({
   fields,
   initialValues,
   onSubmit,
+  onAfterClose,
 }: ClubDialogFormProps<TValues>) {
   const handleKeyDown = React.useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
@@ -50,7 +57,12 @@ export function ClubDialogForm<TValues extends Record<string, unknown>>({
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
-      <DialogContent onKeyDown={handleKeyDown}>
+      <DialogContent
+        onKeyDown={handleKeyDown}
+        onCloseAutoFocus={() => {
+          onAfterClose?.()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
