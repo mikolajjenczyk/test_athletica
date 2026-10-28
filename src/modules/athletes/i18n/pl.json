@@ -101,6 +101,7 @@
   "athletes.errors.duplicateTeamName": "Drużyna o tej nazwie już istnieje.",
   "athletes.errors.positionInUse": "Nie można usunąć pozycji przypisanej zawodnikom.",
   "athletes.errors.positionNotInClub": "Wybrana pozycja nie należy do tego klubu.",
+  "athletes.errors.restoreReferenceMissing": "Nie można cofnąć: drużyna lub pozycja tego zawodnika została w międzyczasie usunięta.",
   "athletes.errors.secondActiveTeam": "Kolejne drużyny będą dostępne po MVP — klub może mieć jedną aktywną drużynę.",
   "athletes.errors.teamHasPlayers": "Nie można usunąć drużyny, która ma zawodników.",
   "athletes.errors.teamNotInClub": "Wybrana drużyna nie należy do tego klubu.",

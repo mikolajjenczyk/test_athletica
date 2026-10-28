@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import type { EntityManager, FilterQuery } from '@mikro-orm/postgresql'
-import { getAuthFromCookies } from '@open-mercato/shared/lib/auth/server'
-import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
+import type { FilterQuery } from '@mikro-orm/postgresql'
+import { isCrudHttpError } from '@open-mercato/shared/lib/crud/errors'
 import { findWithDecryption } from '@open-mercato/shared/lib/encryption/find'
 import type { OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
 import { createLogger } from '@open-mercato/shared/lib/logger'
 import { AthletesPlayer, AthletesPosition, AthletesTeam } from '../../../data/entities'
+import { resolveClubRequestContext } from '../../../lib/requestContext'
 import { athletesErrorSchema, athletesTag, optionsResponseSchema } from '../../openapi'
 
 const logger = createLogger('athletes').child({ component: 'options' })
@@ -30,16 +30,13 @@ export async function GET(request: Request, ctx: { params?: { kind?: string } })
   const query = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams))
   if (!query.success) return json({ error: 'Invalid query' }, 400)
 
-  const auth = await getAuthFromCookies()
-  // Fail closed: no club in context means no options, never "all clubs" (D33).
-  if (!auth?.tenantId || !auth.orgId) return json({ error: 'Club context is required' }, 403)
-  const scope = { tenantId: auth.tenantId, organizationId: auth.orgId }
-  const where = { ...scope, deletedAt: null }
   const needle = query.data.q?.toLocaleLowerCase() ?? ''
 
   try {
-    const { resolve } = await createRequestContainer()
-    const em = resolve<EntityManager>('em')
+    // Same trusted club resolution as the CRUD routes (selected organization, bearer or
+    // cookie auth); no club in context fails closed with 403, never "all clubs" (D33).
+    const { em, scope } = await resolveClubRequestContext(request)
+    const where = { ...scope, deletedAt: null }
     let items: Array<{ value: string; label: string }>
     if (kind.data === 'teams') {
       const rows = await em.find(AthletesTeam, where as FilterQuery<AthletesTeam>, { orderBy: { name: 'asc' } })
@@ -57,6 +54,7 @@ export async function GET(request: Request, ctx: { params?: { kind?: string } })
     if (needle) items = items.filter((item) => item.label.toLocaleLowerCase().includes(needle))
     return json({ items: items.slice(0, query.data.limit) })
   } catch (err) {
+    if (isCrudHttpError(err)) return json(err.body, err.status)
     logger.error('Failed to load athletes options', { err, kind: kind.data })
     return json({ error: 'Failed to load options' }, 500)
   }

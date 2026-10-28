@@ -7,8 +7,8 @@ import {
   requireId,
 } from '@open-mercato/shared/lib/commands/helpers'
 import type { CrudEmitContext, CrudEventsConfig, CrudIndexerConfig } from '@open-mercato/shared/lib/crud/types'
-import { notFound } from '@open-mercato/shared/lib/crud/errors'
-import { enforceCommandOptimisticLock } from '@open-mercato/shared/lib/crud/optimistic-lock-command'
+import { conflict, isUniqueViolation, notFound } from '@open-mercato/shared/lib/crud/errors'
+import { enforceCommandOptimisticLock, enforceRecordGoneIsConflict } from '@open-mercato/shared/lib/crud/optimistic-lock-command'
 import type { DataEngine } from '@open-mercato/shared/lib/data/engine'
 import { findOneWithDecryption } from '@open-mercato/shared/lib/encryption/find'
 import { resolveTranslations } from '@open-mercato/shared/lib/i18n/server'
@@ -48,6 +48,10 @@ export type ScopedCrudDefinition<E extends ScopedRow, S extends ScopedSnapshot, 
   restore: (row: E, snapshot: S) => void
   /** Rejects deleting a row that is still referenced (409). */
   assertDeletable?: (row: E, scope: ClubScope, ctx: CommandRuntimeContext) => Promise<void>
+  /** Rejects restoring a snapshot whose references no longer exist in the club (undo). */
+  validateRestore?: (snapshot: S, scope: ClubScope, ctx: CommandRuntimeContext) => Promise<void>
+  /** Unique index name → domain error code; a DB uniqueness race maps to 409, not 500. */
+  uniqueConstraints?: Record<string, string>
   changeKeys: string[]
   labels: { create: [string, string]; update: [string, string]; delete: [string, string] }
 }
@@ -65,6 +69,13 @@ export function registerScopedCrudCommands<E extends ScopedRow, S extends Scoped
   def: ScopedCrudDefinition<E, S, C, U>,
 ) {
   const resourceKind = `athletes.${def.entity}`
+
+  function toConflict(err: unknown): unknown {
+    for (const [constraint, code] of Object.entries(def.uniqueConstraints ?? {})) {
+      if (isUniqueViolation(err, constraint)) return conflict(code)
+    }
+    return err
+  }
 
   const events: CrudEventsConfig<E> = {
     module: 'athletes',
@@ -125,6 +136,8 @@ export function registerScopedCrudCommands<E extends ScopedRow, S extends Scoped
       const row = await dataEngine.createOrmEntity({
         entity: def.entityClass,
         data: { ...data, tenantId: scope.tenantId, organizationId: scope.organizationId } as EntityData<E>,
+      }).catch((err) => {
+        throw toConflict(err)
       })
       await emit(ctx, 'created', row, scope)
       return row
@@ -149,6 +162,11 @@ export function registerScopedCrudCommands<E extends ScopedRow, S extends Scoped
       const id = snapshot?.id ?? logEntry.resourceId
       if (!id) throw new Error('[internal] Missing record id for undo')
       const scope = resolveUndoScope(ctx, snapshot)
+      if (def.assertDeletable) {
+        const em = ctx.container.resolve('em') as EntityManager
+        const existing = await em.findOne(def.entityClass, scopedWhere<E>(String(id), scope))
+        if (existing) await def.assertDeletable(existing, scope, ctx)
+      }
       const dataEngine = ctx.container.resolve('dataEngine') as DataEngine
       const removed = await dataEngine.deleteOrmEntity({
         entity: def.entityClass,
@@ -194,7 +212,7 @@ export function registerScopedCrudCommands<E extends ScopedRow, S extends Scoped
           }
         },
       }).catch((err) => {
-        throw applyError ?? err
+        throw applyError ?? toConflict(err)
       })
       if (!row) throw notFound('Record not found')
       await emit(ctx, 'updated', row, scope)
@@ -227,11 +245,14 @@ export function registerScopedCrudCommands<E extends ScopedRow, S extends Scoped
       const before = logEntry.snapshotBefore as S | undefined
       if (!before?.id) throw new Error('[internal] Missing previous snapshot for undo')
       const scope = resolveUndoScope(ctx, before)
+      if (def.validateRestore) await def.validateRestore(before, scope, ctx)
       const dataEngine = ctx.container.resolve('dataEngine') as DataEngine
       const restored = await dataEngine.updateOrmEntity({
         entity: def.entityClass,
         where: scopedWhere<E>(before.id, scope),
         apply: (row) => def.restore(row, before),
+      }).catch((err) => {
+        throw toConflict(err)
       })
       if (restored) await emit(ctx, 'updated', restored, scope, true)
     },
@@ -259,7 +280,11 @@ export function registerScopedCrudCommands<E extends ScopedRow, S extends Scoped
       const dataEngine = ctx.container.resolve('dataEngine') as DataEngine
       const em = ctx.container.resolve('em') as EntityManager
       const existing = await em.findOne(def.entityClass, scopedWhere<E>(id, scope))
-      if (!existing) throw notFound('Record not found')
+      if (!existing) {
+        // Deleted meanwhile by someone else: a client holding a version gets the conflict bar.
+        enforceRecordGoneIsConflict({ resourceKind, resourceId: id, request: ctx.request ?? null })
+        throw notFound('Record not found')
+      }
       if (def.assertDeletable) await def.assertDeletable(existing, scope, ctx)
       const row = await dataEngine.deleteOrmEntity({
         entity: def.entityClass,
@@ -287,6 +312,7 @@ export function registerScopedCrudCommands<E extends ScopedRow, S extends Scoped
       const before = logEntry.snapshotBefore as S | undefined
       if (!before?.id) throw new Error('[internal] Missing snapshot for undo')
       const scope = resolveUndoScope(ctx, before)
+      if (def.validateRestore) await def.validateRestore(before, scope, ctx)
       const dataEngine = ctx.container.resolve('dataEngine') as DataEngine
       const restored = await dataEngine.updateOrmEntity({
         entity: def.entityClass,
@@ -295,6 +321,8 @@ export function registerScopedCrudCommands<E extends ScopedRow, S extends Scoped
           row.deletedAt = null
           def.restore(row, before)
         },
+      }).catch((err) => {
+        throw toConflict(err)
       })
       if (restored) await emit(ctx, 'updated', restored, scope, true)
     },

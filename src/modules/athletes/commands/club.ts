@@ -30,6 +30,7 @@ export const ATHLETES_ERRORS = {
   duplicatePositionName: 'athletes.errors.duplicatePositionName',
   positionInUse: 'athletes.errors.positionInUse',
   teamHasPlayers: 'athletes.errors.teamHasPlayers',
+  restoreReferenceMissing: 'athletes.errors.restoreReferenceMissing',
   teamNotInClub: 'athletes.errors.teamNotInClub',
   positionNotInClub: 'athletes.errors.positionNotInClub',
 } as const
@@ -116,6 +117,10 @@ export const teamCommands = registerScopedCrudCommands<AthletesTeam, TeamSnapsho
     const players = await em(ctx).count(AthletesPlayer, scoped<AthletesPlayer>(scope, { teamId: row.id }))
     if (players > 0) throw conflict(ATHLETES_ERRORS.teamHasPlayers)
   },
+  uniqueConstraints: {
+    athletes_teams_one_active_uq: ATHLETES_ERRORS.secondActiveTeam,
+    athletes_teams_name_uq: ATHLETES_ERRORS.duplicateTeamName,
+  },
   changeKeys: ['name', 'isActive'],
   labels: {
     create: ['athletes.audit.teams.create', 'Create team'],
@@ -158,6 +163,9 @@ export const positionCommands = registerScopedCrudCommands<AthletesPosition, Pos
   assertDeletable: async (row, scope, ctx) => {
     const used = await em(ctx).count(AthletesPlayer, scoped<AthletesPlayer>(scope, { positionId: row.id }))
     if (used > 0) throw conflict(ATHLETES_ERRORS.positionInUse)
+  },
+  uniqueConstraints: {
+    athletes_positions_name_uq: ATHLETES_ERRORS.duplicatePositionName,
   },
   changeKeys: ['name', 'sortOrder'],
   labels: {
@@ -240,6 +248,14 @@ export const playerCommands = registerScopedCrudCommands<AthletesPlayer, PlayerS
     row.positionId = snapshot.positionId
     row.joinedAt = snapshot.joinedAt
     row.isActive = snapshot.isActive
+  },
+  validateRestore: async (snapshot, scope, ctx) => {
+    // Undo must not resurrect a player pointing at a team or position deleted since.
+    const team = await em(ctx).findOne(AthletesTeam, scoped<AthletesTeam>(scope, { id: snapshot.teamId }))
+    const position = snapshot.positionId
+      ? await em(ctx).findOne(AthletesPosition, scoped<AthletesPosition>(scope, { id: snapshot.positionId }))
+      : true
+    if (!team || !position) throw conflict(ATHLETES_ERRORS.restoreReferenceMissing)
   },
   changeKeys: ['teamId', 'firstName', 'lastName', 'birthDate', 'positionId', 'joinedAt', 'isActive'],
   labels: {

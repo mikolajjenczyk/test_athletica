@@ -27,7 +27,7 @@ export type ClubSoftDeleteResult = {
 
 /**
  * Coarse "delete club data" flow (R26, D352): soft-deletes every module record of the
- * club and deactivates every other club account through the installed `auth` update
+ * club and deactivates every other account of that club (same organization) through the installed `auth` update
  * command (sessions are revoked there). Not undoable from the UI — the operator restores
  * `deleted_at` / `isConfirmed`; permanent purge is a separate operator task.
  * Idempotent: a repeated request finds nothing left to delete or deactivate.
@@ -60,8 +60,10 @@ const clubSoftDeleteCommand: CommandHandler<Record<string, unknown>, ClubSoftDel
     })
 
     const actorId = ctx.auth?.sub ? String(ctx.auth.sub) : null
+    // Only this club's accounts — never other organizations of the same tenant.
     const users = await em.find(User, {
       tenantId: scope.tenantId,
+      organizationId: scope.organizationId,
       deletedAt: null,
       isConfirmed: true,
       ...(actorId ? { id: { $ne: actorId } } : {}),

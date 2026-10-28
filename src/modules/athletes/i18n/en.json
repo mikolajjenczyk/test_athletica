@@ -101,6 +101,7 @@
   "athletes.errors.duplicateTeamName": "A team with this name already exists.",
   "athletes.errors.positionInUse": "A position assigned to players cannot be deleted.",
   "athletes.errors.positionNotInClub": "The selected position does not belong to this club.",
+  "athletes.errors.restoreReferenceMissing": "Cannot undo: the player's team or position has since been deleted.",
   "athletes.errors.secondActiveTeam": "More teams come after the MVP — a club can have one active team.",
   "athletes.errors.teamHasPlayers": "A team with players cannot be deleted.",
   "athletes.errors.teamNotInClub": "The selected team does not belong to this club.",
