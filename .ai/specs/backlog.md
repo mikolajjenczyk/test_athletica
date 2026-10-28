@@ -33,3 +33,20 @@ Last filed: 2026-10-28
 | E06-S02 | [#21](https://github.com/mikolajjenczyk/test_athletica/issues/21) | Zalecenia powiązane z testami i ich ocena | #6 | #10 | no |
 | E06-S03 | [#22](https://github.com/mikolajjenczyk/test_athletica/issues/22) | Administrator zaprasza ludzi i zakłada drużynę | #6 | — | no |
 | E06-S03-T01 | [#26](https://github.com/mikolajjenczyk/test_athletica/issues/26) | Zaproszenia administratora bez operatora (C20) | #22 | — | no |
+
+### Kolejność specyfikacji i implementacji (2026-10-28)
+
+Bramka: wg PRD (D360) specyfikacje techniczne czekają na zatwierdzenie zakresu przez klienta (Q15). Każdy epik to nowa zdolność (schemat, API), więc wymaga specyfikacji `om-spec-writing` przed kodem; implementacja faza po fazie przez `om-auto-implement-spec` lub `om-implement-spec`. Historie P1 są ostatnimi fazami swoich specyfikacji. Do porównania z D258 (kolejność specyfikacji z repo discovery, niedostępna tutaj).
+
+| # | Specyfikacja | Historie | Skille przy implementacji | Blokuje specyfikację |
+|---|---|---|---|---|
+| 1 | E06 — klub, cele i zalecenia: `2026-10-28-e06-cele-zalecenia-klub.md` (Draft) | faza 1: E06-S03, E06-S03-T01 (#22, #26); faza 2: E06-S01 cele drużyny/zawodnika i plan (#20); faza 3 po SPEC 2: cel testu (#20) i E06-S02 zalecenia (#21) | om-module-scaffold, om-data-model-design, om-system-extension, om-backend-ui-design | Q-001 (Q15); faza 1: weryfikacja `auth`; faza 3: Q-002 + bramka SPEC 2 |
+| 2 | Testy i wyniki | E02-S01 → S02 → S03 (#10, #11, #12) | om-module-scaffold, om-backend-ui-design, om-integration-builder (CSV) | Q60 tylko treść testów |
+| 3 | Dane dzienne: wgrywanie arkuszy | E01-S01, E01-S01-T01 (#8, #23) | om-integration-builder, om-data-model-design (R23) | D334, D301; A07 przed odbiorem |
+| 4 | Karta zawodnika i strona drużyny | E03-S01 → S02 (#13, #14) | om-backend-ui-design, om-module-scaffold | brak (Q64 nieblokujące) |
+| 5 | Obserwacje AI i decyzje trenera | E04-S01, E04-S01-T01 → S02 → S03 (#15, #24, #16, #17) | om-create-ai-agent, om-module-scaffold | Q17; pytania 1 i 5 do Toma |
+| 6 | Raporty, PDF i widok dyrektora | E05-S01, E05-S01-T01 → S02 (#18, #25, #19) | om-module-scaffold, om-backend-ui-design | R19 vs R21 (Tom); Q82 |
+| 7 | Pulpit | E01-S02 (#9) | om-backend-ui-design | zależy od 2–6; pytanie 4 do Toma, „Odśwież” po Q81 |
+| 8 | ~~Zalecenia~~ — przeniesione do SPEC 1 (E06, faza 3) | E06-S02 (#21) | — | — |
+
+Ścieżka krytyczna do scenariusza D271: 1 (fazy 1–2) → (2 ∥ 3) → 4 → 5 → 6; faza 3 SPEC 1 (cel testu, zalecenia) wchodzi po SPEC 2. Pulpit (7) nie jest potrzebny do D271; pierwsza wersja Pulpitu (kafle + „Zwróć uwagę”) może wejść jako ostatnia faza SPEC 3, jeśli priorytetem jest A11. SPEC 1–4 można pisać od razu po Q15; SPEC 5–6 zostają w `Draft` do odpowiedzi Toma i klienta. Aktualizacja 2026-10-28: SPEC 1 objął cały E06 (decyzja: jedna specyfikacja, trzy fazy).
