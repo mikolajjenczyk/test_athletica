@@ -2,6 +2,9 @@
   "version": 1,
   "baseBranch": "auto",
   "tracker": "github",
+  "browser": {
+    "provider": "agent-browser"
+  },
   "validation": {
     "commands": [
       "yarn generate",
@@ -53,12 +56,22 @@
     ]
   },
   "qaGate": false,
+  "ci": {
+    "maxWaitMinutes": 40
+  },
+  "engine": {
+    "loopStepThreshold": 20,
+    "executorTier": "standard",
+    "stepReview": "final"
+  },
   "reviewChecklist": ".ai/review-checklist.md",
   "paths": {
     "runs": ".ai/runs",
     "analysis": ".ai/analysis",
     "specs": ".ai/specs",
     "scripts": ".ai/scripts",
-    "qa": ".ai/qa"
+    "qa": ".ai/qa",
+    "dataModel": ".ai/data-model",
+    "prototypes": ".ai/prototypes"
   }
 }
