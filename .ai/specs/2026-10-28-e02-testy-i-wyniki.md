@@ -2,10 +2,12 @@
 
 **Date**: 2026-10-28
 **Status**: Draft — gotowość per faza:
-- Faza 1a (katalog z szablonu tylko do odczytu, „Tryb boisko”, widok testu): blokują Q-001 (zakres klienta, Q15/D360), Q-002 (akceptacja braku offline) i bramka fazy 1 specyfikacji E06.
+- Faza 1a (katalog z szablonu tylko do odczytu, „Tryb boisko”, widok testu): blokują Q-002 (akceptacja braku offline) i bramka fazy 1 specyfikacji E06.
 - Faza 1b (edycja katalogu przez administratora): blokuje dodatkowo Q-006 (konfiguracja zestawu w MVP).
-- Faza 2 (poprawki, wyniki dodatkowe, CSV): blokuje Q-001.
-- Faza 3 (terminy i braki): blokują Q-001, Q-004 i bramka fazy 2.
+- Faza 2 (poprawki, wyniki dodatkowe, CSV): po bramce fazy 1a.
+- Faza 3 (terminy i braki): blokują Q-004 i bramka fazy 2.
+
+Zakres klienta zatwierdzony (Q-001, 2026-10-28).
 
 > Źródła: `.ai/specs/2026-10-22-prd.md` (Stories 3–5, R02, R12, R17, R18, R22, FR-005, NFR-007), epik [#2](https://github.com/mikolajjenczyk/test_athletica/issues/2), historie [#10](https://github.com/mikolajjenczyk/test_athletica/issues/10) (E02-S01), [#11](https://github.com/mikolajjenczyk/test_athletica/issues/11) (E02-S02), [#12](https://github.com/mikolajjenczyk/test_athletica/issues/12) (E02-S03), prototyp `.ai/prototypes/discovery/Atletica-prototyp-lo-fi-rev-053/index.html` (ekrany „Zestaw testów”, „Edytuj zestaw testów”, „Rozpocznij test”, „Tryb boisko”, „Zakończ test”, „Importuj wyniki z CSV”). Zależy od fazy 1 `.ai/specs/2026-10-28-e06-cele-zalecenia-klub.md` (moduł `athletes`, drużyna, zawodnicy, role). Brak `product-brief.md` w repo — ids D/R/N/Q z PRD.
 
@@ -90,11 +92,11 @@ W module `athletes`: definicje testów per klub (kopia szablonu z pliku modułu)
 
 | Actor | Allowed outcomes | Scope rule | Required feature IDs |
 |---|---|---|---|
-| Administrator klubu | Edycja katalogu testów i „Powtarzaj co” | własna organizacja | `athletes.tests.catalog.manage`, `athletes.tests.view` |
-| Trener | Rozpoczęcie i zakończenie testu, wpis prób, poprawki, wyniki dodatkowe, import CSV, zmiana terminu; widzi powody | własna organizacja | `athletes.tests.view`, `athletes.tests.record` |
-| Dyrektor | Podgląd definicji, wyników i terminów bez powodów i notatek | własna organizacja | `athletes.tests.view` |
+| Administrator klubu | Edycja katalogu testów i „Powtarzaj co” | własny klub (tenant klubu i jego organizacja) | `athletes.tests.catalog.manage`, `athletes.tests.view` |
+| Trener | Rozpoczęcie i zakończenie testu, wpis prób, poprawki, wyniki dodatkowe, import CSV, zmiana terminu; widzi powody | własny klub | `athletes.tests.view`, `athletes.tests.record` |
+| Dyrektor | Podgląd definicji, wyników i terminów bez powodów i notatek | własny klub | `athletes.tests.view` |
 
-Zakres z kontekstu uwierzytelnionego żądania, jak w E06; wszystkie referencje (`team_id`, `player_id`, `test_definition_id`, `session_id`) walidowane w tym samym zakresie; brak organizacji → 403.
+Klub to osobny tenant z jedną organizacją `directory` (E06, Q4 po weryfikacji `auth`). `tenantId` i `organizationId` pochodzą z kontekstu uwierzytelnionego żądania, jak w E06; wszystkie referencje (`team_id`, `player_id`, `test_definition_id`, `session_id`) walidowane w tym samym tenancie i organizacji; brak organizacji → 403.
 
 ## Reuse and Ownership Map
 
@@ -264,7 +266,7 @@ flowchart LR
     classDef existingEntity fill:#e5e7eb,color:#111,stroke:#9ca3af
     classDef plannedEntity fill:#f1e05a,color:#111,stroke:#b7a400
 
-    entity_1["Organizacja (directory)"]:::existingEntity
+    entity_1["Klub: tenant + organizacja (directory)"]:::existingEntity
     entity_2["athletes_team (E06)"]:::plannedEntity
     entity_3["athletes_player (E06)"]:::plannedEntity
     entity_4["athletes_test_definition"]:::newEntity
@@ -321,7 +323,7 @@ Brak zadań w tle.
 ## Security, Privacy, and Compliance
 
 - **Authorization:** funkcje `athletes.tests.*`; dyrektor bez powodów i notatek (D109).
-- **Tenant isolation:** zakres z kontekstu; referencje w zakresie; import dopasowuje tylko w drużynie klubu; brak organizacji → 403.
+- **Tenant isolation:** klub = tenant; każdy odczyt i zapis filtruje `tenant_id` + `organization_id` z kontekstu; referencje w zakresie; import dopasowuje tylko w drużynie klubu; brak organizacji → 403.
 - **Sensitive data:** `reason_note` w mapie szyfrowania; kody powodów nie zawierają diagnoz (N17) — lista do akceptacji (Q-003); zawodnicy odszyfrowywani w pamięci tylko na czas dopasowania CSV; pliki CSV nie są przechowywane.
 - **Abuse and failure modes:** ponowienie z tym samym kluczem nie dubluje; limit rozmiaru pliku (1 MB) i wierszy (500); błędy importu podają numer wiersza bez treści danych osobowych w logach.
 
@@ -329,7 +331,7 @@ Brak zadań w tle.
 
 | Test ID | Level | Setup / fixture | Actions | Assertions | Requirement IDs |
 |---|---|---|---|---|---|
-| TEST-001 | integration | nowa organizacja | utworzenie klubu; drugi przebieg `seedDefaults` | 12 definicji, brak duplikatów | REQ-001 |
+| TEST-001 | integration | nowy klub (tenant + organizacja) | utworzenie klubu przez operatora; drugi przebieg `seedDefaults` | 12 definicji, brak duplikatów | REQ-001 |
 | TEST-002 | integration | administrator | edycja definicji, 7. aktywna, próba zmiany progu | 409; 400; próg bez zmian | REQ-001 |
 | TEST-003 | integration | trener, drużyna | start z datą przyszłą i sprzed dołączenia; poprawny start | 400; sesja `open` | REQ-002 |
 | TEST-004 | integration | sesja | zapis prób, ponowienie z tym samym kluczem, „sprawdź” | jeden wynik = najlepsza próba; flaga przy > 10% | REQ-004, REQ-005 |
@@ -349,7 +351,7 @@ Brak zadań w tle.
 
 ### Phase 1 — Katalog testów i „Tryb boisko” (E02-S01 #10)
 
-- **Depends on:** faza 1 E06 (moduł, drużyna, zawodnicy, role); Q-001; Q-002; część 1b dodatkowo Q-006
+- **Depends on:** faza 1 E06 (moduł, drużyna, zawodnicy, role); Q-002; część 1b dodatkowo Q-006
 - **Outcome:** klub ma katalog testów; trener prowadzi test na boisku z połączeniem, kończy go podsumowaniem i widzi wyniki w widoku testu.
 - **Why this order / value delivered:** daje definicje, wyniki i serwis odczytu dla fazy 3 E06, SPEC 4 i SPEC 5; zdejmuje przepisywanie wyników.
 - **Deliverables:**
@@ -435,7 +437,7 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`):
 | Risk / tradeoff | Impact | Mitigation / detection | Residual risk |
 |---|---|---|---|
 | Brak offline na boisku bez zasięgu | Trener wraca do kartki; dzień testów znowu dodaje pracę (guardrail PRD) | Liczba blokad jako wskaźnik; nadrobienie przez „Dodaj wynik” lub CSV; Q-002 do Toma | Średnie — świadoma decyzja |
-| Katalog per klub rozjeżdża nazwy testów między klubami | Porównania klubów i przyszłe benchmarki trudniejsze | `template_key` zostaje stały; próg z szablonu | Akceptowane (porównania klubów po MVP) |
+| Katalog per klub (każdy klub w osobnym tenancie) rozjeżdża nazwy testów między klubami | Porównania klubów i przyszłe benchmarki trudniejsze — wymagają zapytań między tenantami | `template_key` zostaje stały; próg z szablonu | Akceptowane (porównania klubów po MVP) |
 | Treść szablonu nieznana (Q60) | Zmiana testów po uruchomieniu | Synchronizacja szablonu po `template_key` | Niski |
 | Dopasowanie po nazwisku w CSV | Pomyłka przy podobnych nazwiskach | Tylko dokładne dopasowanie po normalizacji; niejednoznaczne odrzucane | Niski |
 | Odszyfrowanie nazwisk na czas importu | Dane w pamięci serwera | Tylko w obrębie żądania, bez logowania | Niski |
@@ -471,7 +473,7 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`):
 | UI contracts identify references, canonical components, and theme/state coverage | pass | UI and Interaction Contracts |
 | Every phase has dependencies, bounded slices, tests, value, and an observable exit gate | pass | Implementation Phases |
 
-Verdict: `Blocked — Q-001 (zakres klienta); faza 1a dodatkowo Q-002 (brak offline); faza 1b dodatkowo Q-006 (edycja zestawu w MVP); faza 3 dodatkowo Q-004`
+Verdict: `Blocked — faza 1a: Q-002 (brak offline) i bramka fazy 1 E06; faza 1b dodatkowo Q-006 (edycja zestawu w MVP); faza 3 dodatkowo Q-004`
 
 ## Decisions in play
 
@@ -486,7 +488,7 @@ Verdict: `Blocked — Q-001 (zakres klienta); faza 1a dodatkowo Q-002 (brak offl
 
 | ID | Question | Owner | Blocking? | Resolution / decision date |
 |---|---|---|---|---|
-| Q-001 | Czy klient zatwierdził zakres pierwszej wersji (Q15, D360)? | założyciel klienta / Asia | yes (wszystkie fazy) | pending |
+| Q-001 | Czy klient zatwierdził zakres pierwszej wersji (Q15, D360)? | założyciel klienta / Asia | yes (wszystkie fazy) | 2026-10-28: tak — klient zatwierdził zakres (jak w E06) |
 | Q-002 | Akceptacja zastąpienia D349/NFR-005 (brak offline, blokada wpisywania) | Tom / klient | yes (faza 1a) | pending |
 | Q-006 | Akceptacja edycji zestawu testów przez administratora klubu w MVP (PRD: po MVP) | Tom | yes (faza 1b) | pending |
 | Q-003 | Lista powodów „Nie wykonał” (D331) bez danych medycznych (N17) | Tom / klient | no (domyślnie: nieobecny, kontuzja, choroba, inny — do akceptacji) | pending |
@@ -505,3 +507,4 @@ Verdict: `Blocked — Q-001 (zakres klienta); faza 1a dodatkowo Q-002 (brak offl
 | 2026-10-28 | Szkielet z Open Questions Q1–Q5 |
 | 2026-10-28 | Odpowiedzi Q1–Q5 i doprecyzowania; pełna specyfikacja, trzy fazy |
 | 2026-10-28 | Recenzja spójności zakresu: Q-002 rozdzielone (Q-006), faza 1 na 1a/1b, widok testu i serwis odczytu w fazie 1 (REQ-013, TEST-013), „Test w trakcie” na stronie zestawu, ta specyfikacja właścicielem podglądu importu, faza 3 po fazie 2, synchronizacja progów poza zakresem, wskaźniki odczytywane ręcznie |
+| 2026-10-28 | Uspójnienie z E06: klub = osobny tenant z jedną organizacją (zakres, izolacja, TEST-001, diagram); Q-001 rozstrzygnięte (klient zatwierdził zakres) |
