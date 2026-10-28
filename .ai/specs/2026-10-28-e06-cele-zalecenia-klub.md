@@ -1,10 +1,10 @@
 # E06 — Cele, zalecenia i klub
 
 **Date**: 2026-10-28
-**Status**: Draft — gotowość per faza:
-- Faza 1 (klub): blokuje tylko Q-001 (zakres klienta) i weryfikacja `auth` w kroku 1.
-- Faza 2 (cele drużyny/zawodnika, plan sezonu): blokuje Q-001.
-- Faza 3 (cel testu, zalecenia): blokują Q-001, Q-002 i bramka wyjścia SPEC 2 („Testy i wyniki”).
+**Status**: Ready for implementation — fazy 1–2; faza 3 zablokowana. Gotowość per faza:
+- Faza 1 (klub): gotowa; zaczyna się weryfikacją kontraktu `auth` (krok 1).
+- Faza 2 (cele drużyny/zawodnika, plan sezonu): gotowa po bramce wyjścia fazy 1.
+- Faza 3 (cel testu, zalecenia): zablokowana — Q-002 i bramka wyjścia SPEC 2 („Testy i wyniki”).
 
 > Źródła: `.ai/specs/2026-10-22-prd.md` (Stories 13–15, NFR-001, NFR-004), epik [#6](https://github.com/mikolajjenczyk/test_athletica/issues/6), historie [#20](https://github.com/mikolajjenczyk/test_athletica/issues/20) (E06-S01), [#21](https://github.com/mikolajjenczyk/test_athletica/issues/21) (E06-S02), [#22](https://github.com/mikolajjenczyk/test_athletica/issues/22) (E06-S03), zadanie [#26](https://github.com/mikolajjenczyk/test_athletica/issues/26) (E06-S03-T01), prototyp `.ai/prototypes/discovery/Atletica-prototyp-lo-fi-rev-053/index.html`. Brak `product-brief.md` w tym repo — ids D/R/N/Q pochodzą z PRD.
 
@@ -384,7 +384,7 @@ Brak zadań w tle i powiadomień w tej specyfikacji.
 
 ### Phase 1 — Klub, drużyna, zawodnicy i konta (E06-S03 #22, E06-S03-T01 #26)
 
-- **Depends on:** Q15 (zakres klienta); weryfikacja kontraktu `auth` (krok 1)
+- **Depends on:** Q15 (zakres klienta — zatwierdzony 2026-10-28); weryfikacja kontraktu `auth` (krok 1)
 - **Outcome:** administrator klubu sam uruchamia klub: drużyna, pozycje, zawodnicy, zaproszeni trener i dyrektor; kluby odizolowane.
 - **Why this order / value delivered:** każda kolejna specyfikacja (SPEC 2–8) potrzebuje zawodnika, drużyny i ról.
 - **Deliverables:** kroki 1–7 poniżej.
@@ -512,13 +512,13 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`, adaptowane z jednego plik
 | UI contracts identify references, canonical components, and theme/state coverage | pass | UI and Interaction Contracts |
 | Every phase has dependencies, bounded slices, tests, value, and an observable exit gate | pass | Implementation Phases |
 
-Verdict: `Blocked — Q-001 (zakres klienta, Q15) dla wszystkich faz; faza 3 dodatkowo Q-002 i bramka wyjścia SPEC 2; faza 1 zaczyna się weryfikacją kontraktu auth (krok 1)`
+Verdict: `Ready for implementation` — fazy 1–2 (faza 1 zaczyna się weryfikacją kontraktu auth, krok 1). Faza 3: `Blocked — Q-002 i bramka wyjścia SPEC 2`.
 
 ## Open Questions
 
 | ID | Question | Owner | Blocking? | Resolution / decision date |
 |---|---|---|---|---|
-| Q-001 | Czy klient zatwierdził zakres pierwszej wersji (Q15, D360)? | założyciel klienta / Asia | yes (status Ready) | pending |
+| Q-001 | Czy klient zatwierdził zakres pierwszej wersji (Q15, D360)? | założyciel klienta / Asia | yes (status Ready) | 2026-10-28: tak — klient zatwierdził zakres pierwszej wersji (potwierdzenie użytkownika) |
 | Q-002 | Jakie są trzy części „Ocena realizacji i efektu zalecenia” (D246)? | Tom | yes dla fazy 3 | pending |
 | Q-003 | Jak oznaczyć w „Plan sezonu” planowany okres zmęczenia, który czyta AI (D288): flaga na wydarzeniu czy tylko tekst? | Tom | no (faza 2 wysyła wydarzenia bez flagi; potrzebne przed SPEC 5) | pending |
 | Q-004 | Strona startowa administratora: „Profil klubu” czy „Pulpit” (pytanie 6 do Toma)? | Tom | no | rekomendacja: „Profil klubu” |
@@ -538,3 +538,4 @@ Verdict: `Blocked — Q-001 (zakres klienta, Q15) dla wszystkich faz; faza 3 dod
 | 2026-10-28 | Szkielet z Open Questions Q1–Q7 |
 | 2026-10-28 | Odpowiedzi Q1–Q7; pełna specyfikacja, trzy fazy |
 | 2026-10-28 | Recenzja spójności zakresu: cel testu przeniesiony do fazy 3 (po SPEC 2), gotowość per faza, Q-003 nieblokujące dla fazy 2, opcje testów do SPEC 2, AC-005 zawężone, trwałe czyszczenie poza zakresem, REQ-003 uzupełnione |
+| 2026-10-28 | Q-001 rozstrzygnięte (klient zatwierdził zakres); status Ready for implementation dla faz 1–2; faza 3 nadal zablokowana (Q-002, SPEC 2) |
