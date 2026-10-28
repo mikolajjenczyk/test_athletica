@@ -10,6 +10,9 @@ import { User } from '@open-mercato/core/modules/auth/data/entities'
 import { AthletesPlayer, AthletesPosition, AthletesTeam } from '../data/entities'
 import { clubDeleteRequestSchema } from '../data/validators'
 import { emitAthletesEvent } from '../events'
+import { emitCrudSideEffects } from '@open-mercato/shared/lib/commands/helpers'
+import type { DataEngine } from '@open-mercato/shared/lib/data/engine'
+import { playerCommands, positionCommands, teamCommands } from './club'
 import { ensureClubScope } from '../lib/scope'
 
 const logger = createLogger('athletes').child({ component: 'club-delete' })
@@ -52,12 +55,38 @@ const clubSoftDeleteCommand: CommandHandler<Record<string, unknown>, ClubSoftDel
 
     const now = new Date()
     const where = { tenantId: scope.tenantId, organizationId: scope.organizationId, deletedAt: null }
+    // Ids only (no decryption needed): after the commit each row gets the same deleted
+    // side effects as a single delete, so query-index docs and subscribers converge.
+    const [players, positions, teams] = await Promise.all([
+      em.find(AthletesPlayer, where as FilterQuery<AthletesPlayer>, { fields: ['id'] }),
+      em.find(AthletesPosition, where as FilterQuery<AthletesPosition>, { fields: ['id'] }),
+      em.find(AthletesTeam, where as FilterQuery<AthletesTeam>, { fields: ['id'] }),
+    ])
     let deletedRecords = 0
     await em.transactional(async (tem) => {
       deletedRecords += await tem.nativeUpdate(AthletesPlayer, where as FilterQuery<AthletesPlayer>, { deletedAt: now })
       deletedRecords += await tem.nativeUpdate(AthletesPosition, where as FilterQuery<AthletesPosition>, { deletedAt: now })
       deletedRecords += await tem.nativeUpdate(AthletesTeam, where as FilterQuery<AthletesTeam>, { deletedAt: now })
     })
+    const dataEngine = ctx.container.resolve('dataEngine') as DataEngine
+    const removed: Array<[Array<{ id: string }>, { events: unknown; indexer: unknown }]> = [
+      [players, playerCommands],
+      [positions, positionCommands],
+      [teams, teamCommands],
+    ]
+    for (const [rows, side] of removed) {
+      for (const row of rows) {
+        await emitCrudSideEffects({
+          dataEngine,
+          action: 'deleted',
+          entity: row,
+          identifiers: { id: String(row.id), tenantId: scope.tenantId, organizationId: scope.organizationId },
+          syncOrigin: ctx.syncOrigin,
+          events: side.events as Parameters<typeof emitCrudSideEffects>[0]['events'],
+          indexer: side.indexer as Parameters<typeof emitCrudSideEffects>[0]['indexer'],
+        })
+      }
+    }
 
     const actorId = ctx.auth?.sub ? String(ctx.auth.sub) : null
     // Only this club's accounts — never other organizations of the same tenant.

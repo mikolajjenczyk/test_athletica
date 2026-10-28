@@ -21,6 +21,7 @@ function makeCtx(em: Record<string, unknown>, extra: Record<string, unknown> = {
     createOrmEntity: jest.fn<AnyFn>(),
     deleteOrmEntity: jest.fn<AnyFn>(),
     updateOrmEntity: jest.fn<AnyFn>(),
+    markOrmEntityChange: jest.fn<AnyFn>(),
   }
   const forkable = { ...em, fork: () => forkable }
   const services: Record<string, unknown> = { em: forkable, dataEngine, commandBus, ...extra }
@@ -49,17 +50,22 @@ describe('club soft delete', () => {
     })
   })
 
-  it('deactivates only accounts of the same club, never the actor', async () => {
-    const find = jest.fn<AnyFn>(async () => [{ id: 'u-1' }, { id: 'u-2' }])
+  it('deactivates only accounts of the same club, never the actor, and de-indexes every record', async () => {
+    const find = jest.fn<AnyFn>(async (_entity: unknown, filter: unknown) =>
+      'isConfirmed' in (filter as Record<string, unknown>) ? [{ id: 'u-1' }, { id: 'u-2' }] : [{ id: 'row-1' }])
     const tem = { nativeUpdate: jest.fn<AnyFn>(async () => 1) }
     const transactional = jest.fn<AnyFn>(async (fn: unknown) => (fn as (em: unknown) => Promise<void>)(tem))
-    const { ctx, commandBus } = makeCtx({ find, transactional }, { eventBus: { emitEvent: jest.fn() } })
+    const { ctx, commandBus, dataEngine } = makeCtx({ find, transactional }, { eventBus: { emitEvent: jest.fn() } })
     await Promise.resolve(handler().execute({ confirmationName: 'KS Orły' }, ctx)).catch(() => undefined)
-    const userFilter = (find.mock.calls[0] as unknown[] | undefined)?.[1] as Record<string, unknown>
+    const userCall = find.mock.calls.find((call) => 'isConfirmed' in ((call as unknown[])[1] as Record<string, unknown>))
+    const userFilter = (userCall as unknown[] | undefined)?.[1] as Record<string, unknown>
     expect(userFilter).toMatchObject({ tenantId: TENANT, organizationId: CLUB_A, id: { $ne: ACTOR } })
     expect(tem.nativeUpdate).toHaveBeenCalledTimes(3)
     expect(commandBus.execute).toHaveBeenCalledTimes(2)
     expect(commandBus.execute.mock.calls[0][0]).toBe('auth.users.update')
+    // player, position and team rows each queue a "deleted" side effect (events + query index)
+    expect(dataEngine.markOrmEntityChange).toHaveBeenCalledTimes(3)
+    expect(dataEngine.markOrmEntityChange.mock.calls[0][0]).toMatchObject({ action: 'deleted' })
   })
 })
 

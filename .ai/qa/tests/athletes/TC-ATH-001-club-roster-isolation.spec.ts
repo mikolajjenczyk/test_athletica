@@ -67,11 +67,39 @@ test.describe('TC-ATH-001 athletes roster and club isolation', () => {
 
       const inUse = await apiRequest(request, 'DELETE', '/api/athletes/positions', { token, data: { id: positionId } })
       expect(inUse.status()).toBe(409)
+
+      // A save carrying an outdated version is rejected with the shared conflict body.
+      const stale = await apiRequest(request, 'PUT', '/api/athletes/players', {
+        token,
+        data: { id: playerId, firstName: 'Ola' },
+        headers: { 'x-om-ext-optimistic-lock-expected-updated-at': '2000-01-01T00:00:00.000Z' },
+      })
+      expect(stale.status()).toBe(409)
+      expect(((await stale.json()) as { code?: string }).code).toBe('optimistic_lock_conflict')
+      const fresh = await apiRequest(request, 'PUT', '/api/athletes/players', {
+        token,
+        data: { id: playerId, firstName: 'Ola' },
+        headers: { 'x-om-ext-optimistic-lock-expected-updated-at': ownItem.updatedAt },
+      })
+      expect(fresh.status()).toBe(200)
     } finally {
       if (playerId) await apiRequest(request, 'DELETE', '/api/athletes/players', { token, data: { id: playerId } }).catch(() => undefined)
       if (positionId) await apiRequest(request, 'DELETE', '/api/athletes/positions', { token, data: { id: positionId } }).catch(() => undefined)
       await deleteOrganizationIfExists(request, token, otherClubId)
     }
+  })
+
+  test('a user without athletes features is denied on read and write', async ({ request }) => {
+    const token = await getAuthToken(request, 'employee')
+    const read = await apiRequest(request, 'GET', '/api/athletes/players', { token })
+    expect(read.status()).toBe(403)
+    const write = await apiRequest(request, 'POST', '/api/athletes/teams', { token, data: { name: `QA denied ${Date.now()}` } })
+    expect(write.status()).toBe(403)
+    const deleteClub = await apiRequest(request, 'POST', '/api/athletes/club/delete-request', {
+      token,
+      data: { confirmationName: 'anything' },
+    })
+    expect(deleteClub.status()).toBe(403)
   })
 
   test('club data deletion requires the exact club name', async ({ request }) => {
