@@ -41,8 +41,8 @@ Bramka: wg PRD (D360) specyfikacje techniczne czekają na zatwierdzenie zakresu 
 | # | Specyfikacja | Historie | Skille przy implementacji | Blokuje specyfikację |
 |---|---|---|---|---|
 | 1 | E06 — klub, cele i zalecenia: `2026-10-28-e06-cele-zalecenia-klub.md` (Ready: fazy 1–2; faza 3 zablokowana) | faza 1: E06-S03, E06-S03-T01 (#22, #26); faza 2: E06-S01 cele drużyny/zawodnika i plan (#20); faza 3 po SPEC 2: cel testu (#20) i E06-S02 zalecenia (#21) | om-module-scaffold, om-data-model-design, om-system-extension, om-backend-ui-design | Q-001 rozstrzygnięte 2026-10-28; faza 1: weryfikacja `auth`; faza 3: Q-002 + bramka SPEC 2 |
-| 2 | Testy i wyniki | E02-S01 → S02 → S03 (#10, #11, #12) | om-module-scaffold, om-backend-ui-design, om-integration-builder (CSV) | Q60 tylko treść testów |
-| 3 | Dane dzienne: wgrywanie arkuszy | E01-S01, E01-S01-T01 (#8, #23) | om-integration-builder, om-data-model-design (R23) | D334, D301; A07 przed odbiorem |
+| 2 | Testy i wyniki: `2026-10-28-e02-testy-i-wyniki.md` (Draft) | E02-S01 → S02 → S03 (#10, #11, #12) | om-module-scaffold, om-backend-ui-design, om-integration-builder (CSV) | Q-001; faza 1a: Q-002 (brak offline); faza 1b: Q-006; faza 3: Q-004 |
+| 3 | Dane dzienne: wgrywanie arkuszy | E01-S01, E01-S01-T01 (#8, #23) | om-integration-builder, om-data-model-design (R23) | D334, D301; A07 przed odbiorem; podgląd importu z fazy 2 SPEC 2 |
 | 4 | Karta zawodnika i strona drużyny | E03-S01 → S02 (#13, #14) | om-backend-ui-design, om-module-scaffold | brak (Q64 nieblokujące) |
 | 5 | Obserwacje AI i decyzje trenera | E04-S01, E04-S01-T01 → S02 → S03 (#15, #24, #16, #17) | om-create-ai-agent, om-module-scaffold | Q17; pytania 1 i 5 do Toma |
 | 6 | Raporty, PDF i widok dyrektora | E05-S01, E05-S01-T01 → S02 (#18, #25, #19) | om-module-scaffold, om-backend-ui-design | R19 vs R21 (Tom); Q82 |
