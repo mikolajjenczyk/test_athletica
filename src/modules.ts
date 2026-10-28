@@ -48,3 +48,5 @@ if (enterpriseModulesEnabled && enterpriseAgentsEnabled) {
   // orchestrator SDK, so it is only enabled alongside it.
   enabledModules.push({ id: 'agent_examples', from: '@app' })
 }
+
+enabledModules.push({ id: 'athletes', from: '@app' })
