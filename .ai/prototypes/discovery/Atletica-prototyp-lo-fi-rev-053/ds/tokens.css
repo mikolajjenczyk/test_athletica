@@ -1,0 +1,75 @@
+/* Apzumi Design V2.9.5 — generated from tokens.json */
+:root, [data-theme="light"] {
+  --navy: #2a377e;
+  --navy-light: #414f93;
+  --blue: #dce3f7;
+  --blue-tint: #eef1fb;
+  --red: #e63842;
+  --red-tint: #fdeced;
+  --green: #1f8a5b;
+  --green-tint: #eaf7ef;
+  --black: #000000;
+  --muted: #6b7190;
+  --faint: #8a90a8;
+  --white: #ffffff;
+  --interaction-red: #cc2935;
+  --label: #4a5069;
+  --hairline: #e9ebf4;
+  --gridline: #eef0f6;
+  --track: #d9dce8;
+  --chevron: #b7bcd1;
+  --accent-secondary: #608bda;
+  --t-page: #ffffff;
+  --t-tint: #eef1fb;
+  --t-tint2: #dce3f7;
+  --t-field: #eef1fb;
+  --t-redtint: #fdeced;
+  --t-primary: var(--navy);
+  --t-primary-text: var(--navy);
+  --t-icon: var(--navy);
+  --t-cta: #2a377e;
+  --t-snack: #1a2354;
+  --t-hero-bg: #eef1fb;
+  --t-hero-fg: #000000;
+  --t-hero-chip: #dce3f7;
+  --t-hero-btn-bg: #2a377e;
+  --t-hero-btn-fg: #ffffff;
+  --t-hero-bar: #2a377e;
+  --t-hero-bar-off: #dce3f7;
+  --t-shadow-phone: 0 4px 12px rgba(21,31,84,0.10), 0 24px 64px rgba(21,31,84,0.16);
+  --t-shadow-card: 0 2px 10px rgba(21,31,84,0.07);
+  --t-shadow-l2: 0 2px 8px rgba(21,31,84,0.06), 0 12px 32px rgba(21,31,84,0.08);
+  --t-shadow-float: 0 6px 16px rgba(21,31,84,0.14);
+  --t-shadow-sheet: 0 -8px 32px rgba(21,31,84,0.16);
+  --t-shadow-primary: 0 2px 8px rgba(42,55,126,0.16);
+  --t-shadow-primary-pressed: 0 1px 3px rgba(21,31,84,0.14);
+  --t-shadow-hero: 0 2px 10px rgba(21,31,84,0.08);
+  --t-shadow-accent: 0 2px 6px rgba(230,56,66,0.4);
+  --t-shadow-seg: 0 1px 4px rgba(21,31,84,0.12);
+  --t-shadow-snack: 0 8px 24px rgba(21,31,84,0.30);
+}
+:root {
+  --radius-phone: 40px;
+  --radius-hero: 22px;
+  --radius-sheet: 20px;
+  --radius-card: 18px;
+  --radius-input-lg: 16px;
+  --radius-input: 14px;
+  --m-btn-radius: 12px;
+  --radius-pill: 999px;
+  --font-family: 'Lato', system-ui, sans-serif;
+}
+.text-display { font-family: var(--font-family); font-size: 28px; font-weight: 700; letter-spacing: -0.2px; }
+.text-title { font-family: var(--font-family); font-size: 20px; font-weight: 700; }
+.text-body { font-family: var(--font-family); font-size: 15px; font-weight: 400; line-height: 1.45; }
+.text-secondary { font-family: var(--font-family); font-size: 13px; font-weight: 400; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-100-Thin-ext.woff2") format('woff2'); font-weight: 100; font-style: normal; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-100-Thin.woff2") format('woff2'); font-weight: 100; font-style: normal; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-300-Light-ext.woff2") format('woff2'); font-weight: 300; font-style: normal; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-300-Light.woff2") format('woff2'); font-weight: 300; font-style: normal; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-400-Regular-ext.woff2") format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-400-Regular.woff2") format('woff2'); font-weight: 400; font-style: normal; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-700-Bold-ext.woff2") format('woff2'); font-weight: 700; font-style: normal; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-700-Bold.woff2") format('woff2'); font-weight: 700; font-style: normal; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-900-Black-ext.woff2") format('woff2'); font-weight: 900; font-style: normal; }
+@font-face { font-family: 'Lato'; src: url("fonts/Lato-900-Black.woff2") format('woff2'); font-weight: 900; font-style: normal; }

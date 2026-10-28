@@ -1,0 +1,1 @@
+Otwórz plik index.html w przeglądarce (Chrome, Safari, Edge). Prototyp działa bez internetu. Dane są przykładowe i zmyślone. Pasek „Stan testowy” u góry przełącza rolę (trener, dyrektor) i przykładowe sytuacje.

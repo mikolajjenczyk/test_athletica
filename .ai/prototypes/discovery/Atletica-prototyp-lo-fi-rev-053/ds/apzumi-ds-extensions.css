@@ -1,0 +1,214 @@
+/* Rozszerzenia Apzumi DS V2.9.5 (D409, rev-053).
+   Generic parts the DS lacks, written the DS way: DS naming, DS tokens only, no product words or rules. Each part starts with
+   „rozszerzenie Apzumi DS V2.9.5: <part>” so it can be copied into the DS as it is.
+   Load order: ds/tokens.css, ds/components/bundle.css, this file, ds/atletica.css.
+   Part A = the DS components that exist only as HTML previews in the DS (ComponentsCore, ComponentsData, MobileHome, WebPatientDashboard),
+            written once as classes; every value is copied from the preview.
+   Part B = parts the DS has nowhere (toast with a close button, dialog header with a close button, popover menu, filter chips with a close
+            button, change badge, motion, side panel from the right, table alignment, sticky page header, colour tokens the DS lacks). */
+
+/* ---------- Part A: DS components as classes ---------- */
+/* rozszerzenie Apzumi DS V2.9.5: text and spacing tokens the generated tokens.css dropped in 2.9.5 (text) or never had (spacing ladder 4 · 8 · 14 · 20 · 28, kit SKILL.md) */
+:root {
+  --text-display: 700 28px/1.3 var(--font-family);
+  --text-title: 700 20px/1.4 var(--font-family);
+  --text-body: 400 15px/1.45 var(--font-family);
+  --text-secondary: 400 13px/1.4 var(--font-family);
+  --space-1: 4px; --space-2: 8px; --space-3: 14px; --space-4: 20px; --space-5: 28px;
+  /* rozszerzenie Apzumi DS V2.9.5: colours the DS lacks, every one derived from a DS token, never a written value.
+     --interaction-amber: a warm „was due” colour that is not red (same lightness as --interaction-red, hue turned to amber; 5.9:1 on white).
+     --green-text: --green one step darker, so 13 px green text reads at 4.5:1 on --green-tint.
+     --t-backdrop: the DS „Modal dialog” backdrop (ink at 45 %) as a token. */
+  --interaction-amber: oklch(from var(--interaction-red) 0.47 0.13 65);
+  --green-text: color-mix(in srgb, var(--green) 80%, var(--black));
+  --t-backdrop: color-mix(in srgb, var(--t-snack) 45%, transparent);
+}
+body { background: var(--t-page); font: var(--text-body); color: var(--black); }
+/* card: radius 18, padding 16, soft navy shadow (ComponentsData, MobileHome) */
+.ds-card { background: var(--white); border-radius: var(--radius-card); border: 1.5px solid var(--t-border, transparent); box-shadow: var(--t-shadow-card); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+/* hero panel: radius 22, padding 20/22, hero bg + shadow (MobileHome "Today's plan") */
+.ds-hero { background: var(--t-hero-bg); color: var(--t-hero-fg); border-radius: var(--radius-hero); box-shadow: var(--t-shadow-hero); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+/* section title + link (MobileHome "Next visit" / "See all") */
+.ds-sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.ds-sec-h > h2, .ds-sec-h > h3 { margin: 0; font-size: 16px; font-weight: 700; line-height: 1.4; }
+.ds-link { color: var(--navy-light); font-weight: 400; text-decoration: none; background: none; border: 0; padding: 0; font-family: inherit; cursor: pointer; }
+/* buttons: filled / tonal / plain, radius 12, height 44 (ComponentsCore) */
+.ds-btn { height: 44px; min-height: 44px; padding: 0 var(--space-4); border-radius: var(--m-btn-radius); background: var(--t-cta); color: var(--white); border: none; font-family: var(--font-family); font-size: 15px; font-weight: 700; box-shadow: var(--t-shadow-primary); display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); text-decoration: none; white-space: nowrap; cursor: pointer; }
+.ds-btn--tonal { background: var(--t-tint); color: var(--t-primary-text); box-shadow: none; font-weight: 400; }
+.ds-btn--plain { background: none; color: var(--t-primary-text); box-shadow: none; padding: 0 var(--space-3); font-weight: 400; }
+.ds-btn[disabled] { background: var(--t-tint); color: var(--label); box-shadow: none; cursor: default; }
+/* icon box 34 px, radius 10, tint (ComponentsData) */
+.ds-ibox { width: 34px; height: 34px; border-radius: 10px; background: var(--t-tint); display: flex; align-items: center; justify-content: center; flex: none; color: var(--t-icon); }
+/* chip 28 px pill, tint, navy text (bundle.css .az-multi-chip, hero chip) */
+.ds-chip { height: 28px; display: inline-flex; align-items: center; padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--t-tint); color: var(--t-primary-text); font-size: 13px; font-weight: 400; white-space: nowrap; }
+/* list row inside a card: text block + chevron (MobileHome visit row); min 52 px, hairline between rows */
+.ds-row { display: flex; align-items: center; gap: var(--space-3); min-height: 52px; min-width: 0; color: inherit; text-decoration: none; }
+.ds-row + .ds-row { border-top: 1px solid var(--hairline); }
+.ds-chev { flex: none; width: 14px; height: 14px; color: var(--chevron); }
+/* stat value (ComponentsData: 20 px bold; label 13 px muted) */
+.ds-stat { font-size: 20px; font-weight: 700; line-height: 1.3; }
+/* side menu of the web app (WebPatientDashboard .nav) */
+.ds-side { width: 216px; background: var(--white); border-right: 1px solid var(--hairline); padding: var(--space-4) var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); flex: none; }
+.ds-nav { display: flex; align-items: center; gap: var(--space-2); height: 40px; padding: 0 var(--space-3); border-radius: 10px; font-size: 14px; color: var(--muted); text-decoration: none; }
+.ds-nav[aria-current=page] { background: var(--t-tint); font-weight: 700; color: var(--t-primary-text); }
+.ds-nav svg { width: 18px; height: 18px; flex: none; }
+/* bottom tab bar (MobileHome): white, top hairline, pill 52x30 tint on the active item, icon 21, label 11 */
+.ds-tabbar { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--white); box-shadow: 0 -1px 0 var(--hairline); }
+.ds-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); text-decoration: none; min-width: 0; }
+.ds-tab-pill { width: 52px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; position: relative; }
+.ds-tab[aria-current=page] .ds-tab-pill { background: var(--t-tint); }
+.ds-tab svg { width: 21px; height: 21px; }
+.ds-tab-l { font-size: 11px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+.ds-tab[aria-current=page] .ds-tab-l { font-weight: 700; color: var(--t-primary-text); }
+.ds-tab-badge { position: absolute; top: -2px; right: 4px; min-width: 18px; height: 18px; padding: 0 var(--space-1); border-radius: 999px; background: var(--red); color: var(--white); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid var(--white); box-shadow: var(--t-shadow-accent); }
+/* snackbar (tokens: t-snack, t-shadow-snack) */
+.ds-snack { position: fixed; left: 50%; transform: translateX(-50%); bottom: 88px; background: var(--t-snack); color: var(--white); border-radius: 12px; padding: var(--space-3) var(--space-4); box-shadow: var(--t-shadow-snack); font-size: 15px; z-index: 50; max-width: calc(100vw - 32px); }
+/* empty state (kit overlays-feedback „Empty state”): one quiet secondary line, at most one action */
+.ds-empty { display: grid; gap: var(--space-3); justify-items: start; padding: var(--space-2) 0; }
+.ds-empty > p { margin: 0; font: var(--text-secondary); color: var(--muted); }
+
+/* ---------- Part B: parts the DS has nowhere ---------- */
+
+/* rozszerzenie Apzumi DS V2.9.5: toast. A card with the snackbar colours and shadow, a close button in a 44 px target, optional actions
+   („Cofnij”, a link). On a phone it stands above whatever is fixed at the bottom (--az-above); on a computer at the bottom centre of the
+   content column (--az-left). It never covers the top or bottom bars. Swipe down or sideways to dismiss (the page script moves --az-x); the toast takes every touch
+   gesture itself (touch-action: none), so the browser never scrolls instead. Width min(420 px, screen − 40 px), so a one-line message stays one line. */
+.az-toast { position: fixed; left: var(--az-left, 50%); bottom: calc(var(--az-above, 0px) + var(--space-4)); transform: translateX(-50%) translateY(0); z-index: 70;
+  display: flex; align-items: center; gap: var(--space-2) var(--space-3); width: min(420px, calc(100vw - 2 * var(--space-4))); box-sizing: border-box;
+  background: var(--t-snack); color: var(--white); border-radius: var(--radius-input); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); box-shadow: var(--t-shadow-snack); font: var(--text-body); touch-action: none; }
+.az-toast[hidden] { display: none; }
+.az-toast-t { flex: 1 1 auto; min-width: 0; }
+.az-toast .az-toast-act { flex: none; min-height: 44px; padding: 0 var(--space-3); border: 0; border-radius: var(--m-btn-radius); background: none; color: var(--white); font: inherit; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; cursor: pointer; }
+.az-toast .az-toast-act:hover, .az-toast .az-toast-x:hover { background: color-mix(in srgb, var(--white) 14%, transparent); }
+.az-toast-x { flex: none; width: 44px; height: 44px; border: 0; border-radius: var(--m-btn-radius); background: none; color: var(--white); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.az-toast-x svg { width: 20px; height: 20px; }
+.az-toast.is-in { animation: azToastIn .25s ease-out; }
+.az-toast.is-swipe { transition: none; transform: translateX(calc(-50% + var(--az-x, 0px))) translateY(var(--az-y, 0px)); opacity: var(--az-o, 1); }
+@keyframes azToastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+/* rozszerzenie Apzumi DS V2.9.5: dialog and sheet header. One row: the title, an optional chip next to it, a close button in a 44 px target
+   on the right; a second line in secondary text with the context. Under it a hairline. For <dialog> windows and bottom sheets alike. */
+.az-dialog-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-3); align-items: start; padding: var(--space-4) var(--space-3) var(--space-3) var(--space-4); border-bottom: 1px solid var(--hairline); }
+.az-dialog-head .az-dialog-t { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
+.az-dialog-head h2 { margin: 0; font: var(--text-title); font-size: 18px; color: var(--black); min-width: 0; }
+.az-dialog-head .az-dialog-s { grid-column: 1; margin: 0; font: var(--text-secondary); color: var(--label); }
+.az-dialog-x { grid-column: 2; grid-row: 1 / span 2; width: 44px; height: 44px; margin: -6px -2px 0 0; border: 0; border-radius: var(--m-btn-radius); background: none; color: var(--label); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.az-dialog-x:hover, .az-dialog-x:focus-visible { background: var(--t-tint); }
+.az-dialog-x svg { width: 20px; height: 20px; }
+/* the sheet's handle (kit forms-inputs „Bottom sheet form”) */
+.az-sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--track); margin: var(--space-2) auto 0; }
+
+/* rozszerzenie Apzumi DS V2.9.5: popover menu from a „⋯” button, the same on a phone and a computer (app-builder .p-menu-popup with
+   44 px rows). Anchored to the button by the page script (left/top set at run time), above it when there is no room below. */
+.az-menu { position: fixed; z-index: 70; min-width: 200px; max-width: min(320px, calc(100vw - 16px)); padding: var(--space-1); border-radius: var(--radius-input); background: var(--white); box-shadow: var(--t-shadow-float); display: grid; animation: azMenuIn .14s ease-out; }
+.az-menu[hidden] { display: none; }
+.az-menu button, .az-menu a { width: 100%; min-height: 44px; padding: 0 var(--space-3); border: 0; border-radius: var(--space-2); display: flex; align-items: center; gap: var(--space-2); background: none; color: var(--black); font: var(--text-body); text-align: left; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.az-menu button:hover, .az-menu a:hover, .az-menu button:focus-visible { background: var(--t-tint); }
+.az-menu button[disabled], .az-menu button[aria-disabled=true] { color: var(--muted); cursor: default; }
+.az-menu .is-danger { color: var(--interaction-red); }
+.az-menu-sep { height: 1px; margin: var(--space-1) 0; background: var(--hairline); }
+@keyframes azMenuIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* rozszerzenie Apzumi DS V2.9.5: filters. A „Filtry” tonal button with the count of active filters in the title row; the active filters as chips
+   with a close button (44 px target) and a plain „Wyczyść filtry” at the end of the row; the filter sheet closes on its ✕, the backdrop and a swipe down. */
+.az-filter-btn .az-filter-n { display: inline-flex; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--t-primary); color: var(--white); font-size: 13px; line-height: 20px; align-items: center; justify-content: center; }
+.az-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.az-chip-x { display: inline-flex; align-items: center; gap: var(--space-1); height: 36px; padding: 0 0 0 var(--space-3); border-radius: var(--radius-pill); background: var(--t-tint); color: var(--t-primary-text); font: var(--text-secondary); white-space: nowrap; }
+.az-chip-x button { width: 44px; height: 44px; margin: -4px -4px -4px 0; border: 0; border-radius: var(--radius-pill); background: none; color: var(--t-primary-text); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.az-chip-x button:hover, .az-chip-x button:focus-visible { background: var(--t-tint2); }
+.az-chip-x button svg { width: 14px; height: 14px; }
+.az-filter-group { display: grid; gap: var(--space-2); }
+.az-filter-group > p { margin: 0; font: var(--text-secondary); color: var(--label); }
+
+/* rozszerzenie Apzumi DS V2.9.5: change badge. A round 22 px badge with a Tabler icon (arrow-up / minus / arrow-down) in white on a status colour
+   (better / no change / worse, contrast ≥ 4.3:1), always with a word next to it; the polarity is said by the word and the icon, never by the colour alone. */
+.az-delta { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; font: var(--text-secondary); color: var(--black); }
+.az-delta-i { flex: none; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--white); }
+.az-delta-i svg { width: 14px; height: 14px; display: block; }
+.az-delta--up .az-delta-i { background: var(--green); }
+.az-delta--flat .az-delta-i { background: var(--label); }
+.az-delta--down .az-delta-i { background: var(--interaction-red); }
+.az-delta--none .az-delta-i { background: var(--track); color: var(--label); }
+.az-delta--up { color: var(--green-text); }
+.az-delta--down { color: var(--interaction-red); }
+
+/* rozszerzenie Apzumi DS V2.9.5: motion (kit prototype.md, bound to classes instead of the phone frame). The content fades in 0.4 s on a screen
+   change while the bars stay; sheets and dialogs slide up 0.45 s; bars grow and lines draw on entry; all off under reduced motion
+   (bundle.css already shortens every animation there). */
+@keyframes azScreenIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes azSheetUp { from { transform: translateY(56px); } to { transform: translateY(0); } }
+@keyframes azBarGrow { from { transform: scaleY(0); } }
+@keyframes azLineDraw { from { stroke-dashoffset: var(--az-len, 600); } to { stroke-dashoffset: 0; } }
+.az-screen-in { animation: azScreenIn .4s ease-out; }
+dialog.az-sheet-in[open] { animation: azSheetUp .45s cubic-bezier(.16, .84, .3, 1); }
+.az-draw rect.az-bar { animation: azBarGrow .5s ease-out; transform-origin: bottom; transform-box: fill-box; }
+.az-draw polyline.az-line { stroke-dasharray: var(--az-len, 600); animation: azLineDraw .7s ease-out forwards; }
+.az-ease { transition: background-color .18s ease, color .18s ease, box-shadow .18s ease, border-color .18s ease; }
+@media (prefers-reduced-motion: reduce) { .az-screen-in, dialog.az-sheet-in[open], .az-draw rect.az-bar, .az-draw polyline.az-line, .az-toast.is-in, .az-menu { animation: none; } .az-draw polyline.az-line { stroke-dasharray: none; } .az-ease { transition: none; } }
+
+/* rozszerzenie Apzumi DS V2.9.5: side panel from the right (app-builder .p-drawer mirrored). Flush with the window edge from top to bottom,
+   no rounding, the raised shadow, the dialog backdrop; slides in 0.18 s. The header is the dialog header above. */
+dialog.az-drawer { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(520px, 100vw); max-width: 100vw; height: 100%; max-height: 100%; border: 0; padding: 0; background: var(--white); color: var(--black); border-radius: 0; box-shadow: var(--t-shadow-l2); flex-direction: column; animation: azDrawerIn .18s ease-out; }
+/* fix round 2 in rev-053 (item 2): flex only while open; a closed drawer kept in the page stays hidden */
+dialog.az-drawer[open] { display: flex; }
+dialog.az-drawer:not([open]) { display: none; }
+dialog.az-drawer::backdrop { background: var(--t-backdrop); }
+dialog.az-drawer .az-drawer-b { overflow: auto; padding: var(--space-4); display: grid; gap: var(--space-3); align-content: start; flex: 1; }
+@keyframes azDrawerIn { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { dialog.az-drawer { animation: none; } }
+
+/* rozszerzenie Apzumi DS V2.9.5: table alignment. Text and dates to the left, numbers to the right in their cells and headers, tabular digits;
+   the unit belongs in the column header. */
+.az-table th, .az-table td { text-align: left; }
+.az-table th.az-num, .az-table td.az-num, .az-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* rozszerzenie Apzumi DS V2.9.5: sticky page header (kit document.md has a sticky top bar only): the title row stays under the top bar while the
+   page scrolls, white, a hairline under it, no shadow. */
+.az-page-head--sticky { position: sticky; top: var(--az-top, 56px); z-index: 4; background: var(--white); border-bottom: 1px solid var(--hairline); }
+
+/* rozszerzenie Apzumi DS V2.9.5: path above the title (breadcrumbs): secondary text, links in navy, the current page in label colour. */
+.az-path { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); font: var(--text-secondary); color: var(--muted); min-width: 0; }
+.az-path a { color: var(--navy-light); text-decoration: none; }
+.az-path [aria-current=page] { color: var(--label); }
+
+/* rozszerzenie Apzumi DS V2.9.5: side menu header with the collapse control next to the brand; collapsed, only icons stay. */
+.ds-side-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.ds-side-x { flex: none; width: 44px; height: 44px; border: 0; border-radius: var(--m-btn-radius); background: none; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.ds-side-x:hover, .ds-side-x:focus-visible { background: var(--t-tint); color: var(--t-primary-text); }
+
+/* rozszerzenie Apzumi DS V2.9.5: eye switch (hide names) for a top bar: a 44 px icon button, pressed = tint. */
+.az-eye[aria-pressed=true] { background: var(--t-tint); color: var(--t-primary-text); }
+
+/* rozszerzenie Apzumi DS V2.9.5: switch (MobileForm preview: a 44 × 27 pill with a 23 px white knob; on = --t-primary, knob right). Off = --faint,
+   so the track keeps 3:1 against white. A native checkbox with role="switch" inside a label row of at least 44 px. */
+.az-switch { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 44px; height: 27px; margin: 0; border-radius: var(--radius-pill); background: var(--faint); cursor: pointer; transition: background-color .18s ease; }
+.az-switch::before { content: ""; position: absolute; top: 2px; left: 2px; width: 23px; height: 23px; border-radius: 50%; background: var(--white); box-shadow: var(--t-shadow-seg); transition: transform .18s ease; }
+.az-switch:checked { background: var(--t-primary); }
+.az-switch:checked::before { transform: translateX(17px); }
+.az-switch:focus-visible { outline: 2px solid var(--t-primary); outline-offset: 2px; }
+.az-switch-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 44px; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .az-switch, .az-switch::before { transition: none; } }
+
+/* rozszerzenie Apzumi DS V2.9.5: segmented control laid out as classes. The DS has the control (.az-segmented, .az-seg, the sliding white pill in
+   bundle.css) and writes its look inline in ComponentsCore; this is that look on the spacing ladder: a tint track with 4 px padding and gap, segments
+   36 px on a computer (the track 44 px) and 44 px on a phone. The page script sets --az-seg-x/y/w/h from the selected segment. */
+.az-segmented { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); padding: var(--space-1); background: var(--t-tint); border-radius: var(--m-btn-radius); max-width: 100%; }
+.az-segmented > .az-seg { flex: 1 1 auto; min-height: 36px; padding: 0 var(--space-3); display: inline-flex; align-items: center; justify-content: center; font: var(--text-body); white-space: nowrap; }
+@media (max-width: 767px) { .az-segmented > .az-seg { min-height: 44px; } }
+
+/* rozszerzenie Apzumi DS V2.9.5: checkbox (`input.az-check`). The DS previews have a switch and option rows but no checkbox; this one is drawn
+   in the switch's colours: a 22 px box, radius 6, a 1.5 px --faint edge (3:1 on white); checked = --t-primary with a white tick (a CSS shape, no glyph). */
+input[type=checkbox].az-check { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin: 0; flex: none; border: 1.5px solid var(--faint); border-radius: 6px; background: var(--white); display: inline-grid; place-content: center; cursor: pointer; vertical-align: middle; }
+input[type=checkbox].az-check::before { content: ""; width: 11px; height: 6px; border: 0 solid var(--white); border-width: 0 0 2.2px 2.2px; transform: rotate(-45deg) translate(1px, -1px); opacity: 0; }
+input[type=checkbox].az-check:checked { background: var(--t-primary); border-color: var(--t-primary); }
+input[type=checkbox].az-check:checked::before { opacity: 1; }
+input[type=checkbox].az-check:disabled { opacity: .45; cursor: default; }
+input[type=checkbox].az-check:focus-visible { outline: 2px solid var(--t-primary); outline-offset: 2px; }
+
+/* rozszerzenie Apzumi DS V2.9.5: warning chip (the DS chip in an amber tone for „check this value”). */
+.az-chip--warn { display: inline-flex; align-items: center; height: 24px; padding: 0 var(--space-2); border-radius: var(--radius-pill); background: var(--t-tint); color: var(--interaction-amber); font: 700 13px/1 var(--font-family); white-space: nowrap; }
+
+/* rozszerzenie Apzumi DS V2.9.5: empty state (ComponentsCore has none): an icon in a tint square, a short title, one action. */
+.az-empty { display: grid; gap: var(--space-3); justify-items: start; padding: var(--space-2) 0; }
+.az-empty-ic { width: 44px; height: 44px; border-radius: 12px; background: var(--t-tint); color: var(--t-icon); display: inline-flex; align-items: center; justify-content: center; }
+.az-empty > p { margin: 0; font: 700 16px/1.4 var(--font-family); color: var(--black); }
