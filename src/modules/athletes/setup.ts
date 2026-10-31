@@ -34,9 +34,10 @@ export const setup: ModuleSetupConfig = {
       'auth.users.list',
       'auth.users.create',
       'auth.users.edit',
+      'athletes.tests.view',
     ],
-    coach: ['athletes.players.view'],
-    director: ['athletes.players.view'],
+    coach: ['athletes.players.view', 'athletes.tests.view', 'athletes.tests.record'],
+    director: ['athletes.players.view', 'athletes.tests.view'],
   },
 
   async onTenantCreated({ em, tenantId, organizationId }) {
