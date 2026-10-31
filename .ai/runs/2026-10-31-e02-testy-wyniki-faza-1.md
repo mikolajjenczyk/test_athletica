@@ -59,4 +59,4 @@ Trener prowadzi test drużyny na telefonie w „Tryb boisko” (tylko z połącz
 - [x] 1.8 Strona „Tryb boisko” — e076b34
 - [x] 1.9 Widok testu — bbdb45a
 - [x] 1.10 Tłumaczenia pl/en — dfb75dd
-- [ ] 1.11 Testy jednostkowe i integracyjne
+- [x] 1.11 Testy jednostkowe i integracyjne — c219f47, 96d287d
