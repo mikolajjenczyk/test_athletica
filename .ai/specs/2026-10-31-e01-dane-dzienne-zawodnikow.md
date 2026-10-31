@@ -38,7 +38,7 @@ Dziś zawodnicy wpisują RPE każdej sesji i poranną ankietę samopoczucia do a
 - **REQ-005** — Trener wgrywa plik ankiet (`.xlsx`/`.csv`) z tym samym podglądem i przypisywaniem; z najwyżej trzech ankiet dnia liczy się oznaczona jako poranna albo wypełniona przed 12:00, a podgląd mówi która (D316, D330g).
 - **REQ-006** — Sześć pytań ankiety w skalach arkusza: sen w godzinach, jakość snu, zmęczenie, ból mięśni, stres, nastrój (1–5, 5 = najlepiej / bez dolegliwości); brak ankiety to „Brak odpowiedzi”, nigdy 0 (D353, R12).
 - **REQ-007** — Kolumny z wolnym tekstem (uwagi, notatki), ból i objawy poza skalą, „Kontakt?” są pomijane przy odczycie i nigdzie nie zapisywane (Q5, N18).
-- **REQ-008** — Samopoczucie widzi tylko trener; odpowiedzi ankiety są szyfrowane (R23).
+- **REQ-008** — Samopoczucie widzą tylko trener i administrator klubu (R23 zmienione decyzją 2026-10-31, opcja A); dyrektor nie; odpowiedzi ankiety są szyfrowane.
 - **REQ-009** — Pulpit v1 dla trenera: tytuł z datą; linia świeżości danych z „Wgraj plik RPE” i „Wgraj plik ankiet”; kafle „Obciążenie sesji (RPE)” i „Samopoczucie”; „Zwróć uwagę” (D285, D370, D374, D389 — w części dziennej).
 - **REQ-011** — Dostęp do danych dziennych: bez funkcji `athletes.daily.*` → 403; dyrektor i administrator bez roli trenera nie importują ani nie czytają danych dziennych; przypisanie zawodnika spoza klubu → 400 (D33).
 - **REQ-012** — Pulpit zapisuje jedno wejście trenera na dzień (użytkownik, data), żeby zmierzyć A11 (≥ 4 dni w tygodniu) bez dodatkowych narzędzi analitycznych.
@@ -94,7 +94,7 @@ W module `athletes` dwie ścieżki importu (RPE, ankiety) używają wspólnego k
 |---|---|---|---|
 | Trener | Wgrywanie obu plików, przypisania, podgląd sesji RPE i ankiet, Pulpit v1 | własny klub (tenant i jego organizacja) | `athletes.daily.import`, `athletes.daily.view`, `athletes.wellbeing.view` |
 | Dyrektor | Brak dostępu do samopoczucia; obciążenie drużyny tylko w raportach (SPEC 6) | — | brak w tej specyfikacji |
-| Administrator klubu | Brak (chyba że ma też rolę trenera, E06 Q7) | — | — |
+| Administrator klubu | Wszystko co trener: import, dane dzienne, samopoczucie, Pulpit — nadzbiór ról, które nadaje (decyzja 2026-10-31, opcja A) | własny klub | `athletes.daily.import`, `athletes.daily.view`, `athletes.wellbeing.view` |
 
 Zakres z kontekstu uwierzytelnionego żądania (E06: klub = tenant z jedną organizacją); dopasowanie nazwisk tylko wśród zawodników drużyny klubu; brak organizacji → 403. Odpowiedzi API z samopoczuciem wymagają `athletes.wellbeing.view`.
 
@@ -294,7 +294,7 @@ Brak zadań w tle (import synchroniczny, ≤ 5000 wierszy).
 
 ## Security, Privacy, and Compliance
 
-- **Authorization:** `athletes.daily.import`, `athletes.daily.view`, `athletes.wellbeing.view` tylko w szablonie roli trenera; dyrektor i administrator ich nie mają.
+- **Authorization:** `athletes.daily.import`, `athletes.daily.view`, `athletes.wellbeing.view` w szablonach ról trenera i administratora klubu (administrator jest nadzbiorem ról, które nadaje — wymóg zainstalowanego `auth`, decyzja 2026-10-31); dyrektor ich nie ma.
 - **Tenant isolation:** zakres z kontekstu; dopasowanie i przypisania tylko do zawodników drużyny klubu; przypisanie zawodnika spoza klubu → 400; brak organizacji → 403.
 - **Sensitive data:** odpowiedzi ankiety i `previous_values` w mapie szyfrowania; nazwiska zawodników odszyfrowywane w pamięci tylko na czas dopasowania; plik nie jest przechowywany; `rejected_rows` bez nazwisk i wartości; logi bez treści wierszy. Kolumny tekstowe i ból/objawy/„Kontakt?” nie są odczytywane (N18, Q5). Bez przeglądu prawnego po stronie produktu (decyzja 2026-10-31; zgody po stronie klubu, D332).
 - **Abuse and failure modes:** limit rozmiaru i wierszy; zabezpieczenie parsera `.xlsx` przed formułami (czytamy tylko wartości), plikami zip-bomb (limit rozmiaru po rozpakowaniu) i wstrzyknięciem CSV przy ewentualnym eksporcie (wartości tekstowe nie są nigdzie eksportowane).
@@ -452,7 +452,7 @@ Verdict: `Ready for implementation` po bramce fazy 1 E06 (faza 1); fazy 2–3 po
 | Q81 | Arkusze na komputerze trenera, trener wgrywa | Brak automatycznego odczytu; D335 jedyną ścieżką | rozstrzygnięte 2026-10-28 |
 | D285, D370, D374, D389 | Kolejność Pulpitu | Pulpit v1 realizuje część dzienną; reszta w SPEC 7 | Tom |
 | „Odśwież” w linii świeżości (Story 2) | Ręczne ponowne wczytanie arkusza | **Zastąpione:** „Wgraj plik RPE” / „Wgraj plik ankiet” z datą ostatnich danych (decyzja 2026-10-31) | użytkownik |
-| R23 | Samopoczucie tylko dla trenera | Utrzymane + szyfrowanie odpowiedzi | Tom |
+| R23 | Samopoczucie tylko dla trenera | **Zmienione (2026-10-31, opcja A):** samopoczucie widzą trener i administrator klubu (administrator musi mieć funkcje ról, które nadaje); dyrektor nie; szyfrowanie odpowiedzi | użytkownik (Tom do wiadomości) |
 | N18 | Bez bólu, objawów, „Kontakt?”, notatek z ankiet | Utrzymane; dodatkowo brak „Uwag” z RPE (Q5) | — |
 
 ## Open Questions

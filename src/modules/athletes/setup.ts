@@ -23,21 +23,29 @@ export async function ensureClubRoles(em: EntityManager, tenantId: string): Prom
   await em.nativeUpdate(Role, { name: 'club_admin', tenantId, minActiveHolders: 0 }, { minActiveHolders: 1 })
 }
 
+const COACH_FEATURES = ['athletes.players.view', 'athletes.tests.view', 'athletes.tests.record']
+const DIRECTOR_FEATURES = ['athletes.players.view', 'athletes.tests.view']
+
 export const setup: ModuleSetupConfig = {
   defaultRoleFeatures: {
     superadmin: ['athletes.*'],
     admin: ['athletes.*'],
-    club_admin: [
-      'athletes.club.manage',
-      'athletes.players.view',
-      'athletes.players.manage',
-      'auth.users.list',
-      'auth.users.create',
-      'auth.users.edit',
-      'athletes.tests.view',
-    ],
-    coach: ['athletes.players.view', 'athletes.tests.view', 'athletes.tests.record'],
-    director: ['athletes.players.view', 'athletes.tests.view'],
+    // The installed `auth` grant check lets an actor assign a role only when it holds every
+    // feature of that role, so the club admin is a superset of coach and director
+    // (decision 2026-10-31, option A — the club admin also sees what the coach sees).
+    club_admin: Array.from(
+      new Set([
+        'athletes.club.manage',
+        'athletes.players.manage',
+        'auth.users.list',
+        'auth.users.create',
+        'auth.users.edit',
+        ...COACH_FEATURES,
+        ...DIRECTOR_FEATURES,
+      ]),
+    ),
+    coach: COACH_FEATURES,
+    director: DIRECTOR_FEATURES,
   },
 
   async onTenantCreated({ em, tenantId, organizationId }) {

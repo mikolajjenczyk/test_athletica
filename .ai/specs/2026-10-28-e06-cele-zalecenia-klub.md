@@ -89,7 +89,7 @@ Nowy moduł aplikacji `athletes` (id z PRD, `src/modules/athletes/`), zbudowany 
 | Actor | Allowed outcomes | Scope rule | Required feature IDs |
 |---|---|---|---|
 | Operator (administrator systemu) | Zakłada tenant klubu z organizacją i pierwszego administratora klubu (rola `club_admin`), potem `yarn mercato auth sync-role-acls`; trwale czyści dane klubu | system (instalowany kontrakt `directory`/`auth`, superadmin) | instalowane `directory.*`, `auth.users.*` |
-| Administrator klubu | Drużyna, pozycje, zawodnicy; zaproszenia, „Status konta”, dezaktywacja; usunięcie danych klubu | własna organizacja | `athletes.club.manage`, `athletes.players.view`, `athletes.players.manage`, `auth.users.list`, `auth.users.create`, `auth.users.edit` |
+| Administrator klubu | Drużyna, pozycje, zawodnicy; zaproszenia, „Status konta”, dezaktywacja; usunięcie danych klubu; ponadto wszystkie funkcje ról, które nadaje (trener, dyrektor) — wymóg zainstalowanego `auth`, decyzja 2026-10-31 (opcja A) | własna organizacja | `athletes.club.manage`, `athletes.players.view`, `athletes.players.manage`, `auth.users.list`, `auth.users.create`, `auth.users.edit` + funkcje ról trenera i dyrektora |
 | Trener | Podgląd drużyny i zawodników; cele, plan sezonu, zalecenia i ich ocena | własna organizacja | `athletes.players.view`, `athletes.goals.manage`, `athletes.plan.manage`, `athletes.recommendations.manage` |
 | Dyrektor | Podgląd drużyny, celów, planu, zaleceń bez tekstu trenera | własna organizacja | `athletes.players.view`, `athletes.goals.view`, `athletes.plan.view`, `athletes.recommendations.view` |
 

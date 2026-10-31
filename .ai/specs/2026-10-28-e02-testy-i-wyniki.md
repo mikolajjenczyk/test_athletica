@@ -91,7 +91,7 @@ W module `athletes`: definicje testów per klub (kopia szablonu z pliku modułu)
 
 | Actor | Allowed outcomes | Scope rule | Required feature IDs |
 |---|---|---|---|
-| Administrator klubu | Podgląd katalogu testów (bez edycji w MVP) | własny klub (tenant klubu i jego organizacja) | `athletes.tests.view` |
+| Administrator klubu | Wszystko co trener (start i zakończenie testu, zapis prób, powody) + podgląd katalogu — nadzbiór ról, które nadaje (decyzja 2026-10-31, opcja A) | własny klub (tenant klubu i jego organizacja) | `athletes.tests.view`, `athletes.tests.record` |
 | Trener | Rozpoczęcie i zakończenie testu, wpis prób, poprawki, wyniki dodatkowe, import CSV, zmiana terminu; widzi powody | własny klub | `athletes.tests.view`, `athletes.tests.record` |
 | Dyrektor | Podgląd definicji, wyników i terminów bez powodów i notatek | własny klub | `athletes.tests.view` |
 
@@ -196,7 +196,7 @@ Referencje: `.ai/guides/backend-ui.md`, wzorce `example` (`ui.page-shell`, `ui.d
 | Role | Navigation groups in order | Dashboard / injected widgets | Login-to-primary-task flow |
 |---|---|---|---|
 | Trener | Drużyna → Testy, Terminy | „Test w trakcie · Wróć do testu” na stronie „Zestaw testów” (Pulpit: SPEC 7) | logowanie → Testy → „Rozpocznij test” → „Tryb boisko” (≤ 3 kliknięcia) |
-| Administrator klubu | Klub → Zestaw testów | brak | logowanie → Zestaw testów → „Edytuj” |
+| Administrator klubu | Klub → Zestaw testów | brak | logowanie → Zestaw testów → „Rozpocznij test” |
 | Dyrektor | Drużyna → Testy (podgląd) | brak | podgląd |
 
 | Surface / widget | Empty state guidance and action | Responsive behavior | Keyboard / focus behavior |
@@ -321,7 +321,7 @@ Brak zadań w tle.
 
 ## Security, Privacy, and Compliance
 
-- **Authorization:** funkcje `athletes.tests.*`; dyrektor bez powodów i notatek (D109).
+- **Authorization:** funkcje `athletes.tests.*`; dyrektor bez powodów i notatek (D109). Decyzja 2026-10-31 (opcja A): zainstalowany `auth` pozwala nadać rolę tylko komuś, kto ma wszystkie jej funkcje, więc administrator klubu jest nadzbiorem ról trenera i dyrektora (administrator klubu widzi powody „Nie wykonał”).
 - **Tenant isolation:** klub = tenant; każdy odczyt i zapis filtruje `tenant_id` + `organization_id` z kontekstu; referencje w zakresie; import dopasowuje tylko w drużynie klubu; brak organizacji → 403.
 - **Sensitive data:** brak wolnego tekstu przy wynikach; kody powodów bez danych o zdrowiu (N17, Q-003); zawodnicy odszyfrowywani w pamięci tylko na czas dopasowania CSV; pliki CSV nie są przechowywane.
 - **Abuse and failure modes:** ponowienie z tym samym kluczem nie dubluje; limit rozmiaru pliku (1 MB) i wierszy (500); błędy importu podają numer wiersza bez treści danych osobowych w logach.
@@ -489,6 +489,7 @@ Verdict: `Ready for implementation` po bramce fazy 1 E06 (faza 1); faza 2 dodatk
 | Id | Decision | Effect in this spec | Owner |
 |---|---|---|---|
 | D349, NFR-005 | „Tryb boisko” kolejkuje wyniki bez zasięgu | **Zastąpione:** brak offline, blokada wpisywania (decyzja ostateczna użytkownika 2026-10-31) | użytkownik |
+| Model ról | Role klubowe nadaje administrator klubu | Decyzja 2026-10-31 (opcja A): zainstalowany `auth` pozwala nadać rolę tylko komuś, kto ma wszystkie jej funkcje, więc administrator klubu jest nadzbiorem ról trenera i dyrektora | użytkownik |
 | PRD Phase 2: „konfiguracja zestawu testów — po MVP” | Konfiguracja zestawu po MVP | Utrzymane: katalog z szablonu tylko do odczytu w MVP (2026-10-31) | użytkownik |
 | D99 | Próg „Wyraźna zmiana od” ustala Apzumi, tylko odczyt | Utrzymane | Tom |
 | D71 | Retest co 6 czy 7–8 tygodni | Domyślnie 6 tygodni, edytowalne | klient |

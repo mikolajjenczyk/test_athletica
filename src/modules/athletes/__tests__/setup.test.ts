@@ -38,11 +38,18 @@ describe('athletes setup', () => {
     }
   })
 
-  it('lets only coaches record tests and see reasons (D109); every club role can view tests', () => {
+  it('keeps the director away from recording and reasons (D109); every club role can view tests', () => {
     const features = setup.defaultRoleFeatures ?? {}
     for (const role of CLUB_ROLE_NAMES) expect(features[role]).toContain('athletes.tests.view')
-    expect(CLUB_ROLE_NAMES.filter((role) => (features[role] ?? []).includes('athletes.tests.record'))).toEqual(['coach'])
+    expect(CLUB_ROLE_NAMES.filter((role) => (features[role] ?? []).includes('athletes.tests.record'))).toEqual(['club_admin', 'coach'])
     expect(features.admin).toEqual(['athletes.*'])
     expect(features.superadmin).toEqual(['athletes.*'])
+  })
+
+  it('makes the club admin a superset of every role it can assign (installed grant check)', () => {
+    const features = setup.defaultRoleFeatures ?? {}
+    for (const role of ['coach', 'director'] as const) {
+      for (const feature of features[role] ?? []) expect(features.club_admin).toContain(feature)
+    }
   })
 })
