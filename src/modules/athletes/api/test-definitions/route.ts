@@ -7,7 +7,7 @@ const TEST_DEFINITION_ENTITY_ID = 'athletes:athletes_test_definition'
 
 /**
  * The club's test catalog (REQ-001). READ-ONLY in the MVP (Q-006): no POST/PUT/DELETE
- * handlers are exported, so writes answer 405. The "clear change" threshold and its source
+ * handlers are exported, so the app router answers writes with 404. The "clear change" threshold and its source
  * belong to Apzumi (D99) and only change through a template sync.
  */
 const querySchema = z
