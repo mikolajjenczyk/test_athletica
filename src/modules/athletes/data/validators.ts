@@ -106,6 +106,8 @@ export const testResultRecordSchema = z
     state: z.enum(TEST_EXPLICIT_STATES).optional(),
     reasonCode: z.enum(TEST_REASON_CODES).nullable().optional(),
     idempotencyKey: z.string().trim().min(8).max(200),
+    /** `updatedAt` of the player's existing result in this session — required to correct it. */
+    expectedUpdatedAt: z.string().trim().min(1).optional(),
   })
   .superRefine((value, ctx) => {
     const attempts = value.trials.map((trial) => trial.attemptNo)

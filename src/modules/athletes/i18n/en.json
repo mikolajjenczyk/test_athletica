@@ -114,6 +114,7 @@
   "athletes.errors.testDefinitionInactive": "This test is not active in the club.",
   "athletes.errors.testDefinitionNotInClub": "The selected test is not in the club's test set.",
   "athletes.errors.testIdempotencyKeyReused": "This save was already used for another result. Refresh the page and enter the attempts again.",
+  "athletes.errors.testResultAlreadyRecorded": "This player already has a result in this test (for example from another device). Reload the test to see it before correcting.",
   "athletes.errors.testResultChangedSinceRecord": "Cannot undo: the result was corrected in the meantime.",
   "athletes.errors.testResultNotFound": "This result was not found — it may have been removed in the meantime.",
   "athletes.errors.testSessionAlreadyOpen": "This team test is already in progress.",

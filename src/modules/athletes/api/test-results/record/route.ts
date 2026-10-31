@@ -81,18 +81,18 @@ export const openApi: OpenApiRouteDoc = {
     POST: {
       summary: 'Record one player\'s trials and result in one atomic write',
       description:
-        'The result is the best valid trial (higher or lower is better per test). Gaps are states — `empty`, `invalid_attempt` (all trials invalid), `not_performed` (requires `reasonCode`: absent, excused, other) or `joined_later` — and never 0. The same `idempotencyKey` returns the stored result (`replayed: true`) without a second write; a key used for another player or session is a 409.',
+        'The result is the best valid trial (higher or lower is better per test). Gaps are states — `empty`, `invalid_attempt` (all trials invalid), `not_performed` (requires `reasonCode`: absent, excused, other) or `joined_later` — and never 0. The same `idempotencyKey` returns the stored result (`replayed: true`) without a second write; a key used for another player or session is a 409. To correct a player who already has a result in the session, send the `updatedAt` of that result as `expectedUpdatedAt`: without it the save is a 409 `athletes.errors.testResultAlreadyRecorded`, with a stale one a 409 `optimistic_lock_conflict`. A correction keeps the first idempotency key and sets `correctedAt`; saving exactly the stored trials answers 200 with `replayed: true`.',
       tags: [athletesTag],
       requestBody: { contentType: 'application/json', schema: testResultRecordSchema },
       responses: [
         { status: 201, description: 'Result recorded', schema: responseSchema },
-        { status: 200, description: 'Same idempotency key: the stored result', schema: responseSchema },
+        { status: 200, description: 'Same idempotency key, or the same trials as stored: the stored result', schema: responseSchema },
       ],
       errors: [
         { status: 400, description: 'Invalid payload, attempt out of range, player not in the session, or test date before the player joined', schema: athletesErrorSchema },
         { status: 403, description: 'Missing feature or club context', schema: athletesErrorSchema },
         { status: 404, description: 'Session not found in the club', schema: athletesErrorSchema },
-        { status: 409, description: 'Session finished, or idempotency key already used elsewhere', schema: athletesErrorSchema },
+        { status: 409, description: 'Session finished, idempotency key already used elsewhere, result already recorded (send `expectedUpdatedAt`), or stale `expectedUpdatedAt` (`optimistic_lock_conflict`)', schema: athletesErrorSchema },
       ],
     },
   },

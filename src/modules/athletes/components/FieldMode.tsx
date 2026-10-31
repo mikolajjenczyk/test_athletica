@@ -423,7 +423,16 @@ export default function FieldMode({ sessionId }: { sessionId: string }) {
     setEntryError(null)
     const playerId = currentId
     try {
-      const payload = { sessionId: data.session.id, playerId, ...outcome.body, idempotencyKey }
+      // Correcting a player who already has a result sends the version this screen saw, so a
+      // result changed on another device is a conflict, never a silent overwrite.
+      const existingResult = results.get(playerId)
+      const payload = {
+        sessionId: data.session.id,
+        playerId,
+        ...outcome.body,
+        idempotencyKey,
+        ...(existingResult?.updatedAt ? { expectedUpdatedAt: existingResult.updatedAt } : {}),
+      }
       const call = await runMutation({
         operation: () => apiCall<RecordResponse & ApiErrorBody>('/api/athletes/test-results/record', {
           method: 'POST',
@@ -457,6 +466,8 @@ export default function FieldMode({ sessionId }: { sessionId: string }) {
       } else if (call.status === 409 && body?.error === 'athletes.errors.testIdempotencyKeyReused') {
         keyCacheRef.current.delete(playerId)
         setEntryError(t('athletes.errors.testIdempotencyKeyReused'))
+      } else if (call.status === 409 && body?.error === 'athletes.errors.testResultAlreadyRecorded') {
+        setConflict(t('athletes.errors.testResultAlreadyRecorded'))
       } else if (call.status === 409) {
         setConflict(t('athletes.tests.field.conflict.changed'))
       } else if (call.status === 404) {

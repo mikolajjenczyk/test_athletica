@@ -202,6 +202,79 @@ describe('athletes.test_results.record', () => {
       .rejects.toMatchObject({ status: 409, body: { error: TEST_ERRORS.sessionFinished } })
   })
 
+  describe('correcting an existing result', () => {
+    const savedAt = '2026-10-28T10:00:00.000Z'
+    function existingResult() {
+      return {
+        id: 'r-1', sessionId: SESSION, playerId: PLAYER, idempotencyKey: KEY, value: '40', state: 'recorded',
+        reasonCode: null, correctedAt: null as Date | null, updatedAt: new Date(savedAt), deletedAt: null,
+      }
+    }
+    /** `findByKey` (filters off) finds nothing for the new key; the (session, player) read finds `existing`. */
+    function correctionCtx(existing: ReturnType<typeof existingResult>, trials: unknown[] = [{ attemptNo: 1, value: '40', isInvalid: false, deletedAt: null }]) {
+      const rows = recordRows([['list:AthletesTestTrial', trials]])
+      return makeCtx(rows, {
+        findOne: jest.fn<AnyFn>(async (entity: unknown, _where: unknown, options?: unknown) => {
+          if (entity !== AthletesTestResult) return rows.get(entity) ?? null
+          return (options as { filters?: boolean } | undefined)?.filters === false ? null : existing
+        }),
+      })
+    }
+    const correction = { ...base, idempotencyKey: 'field-key-0002', trials: [{ attemptNo: 1, value: 44 }] }
+
+    it('requires the version of the existing result (409 testResultAlreadyRecorded)', async () => {
+      const existing = existingResult()
+      const { ctx } = correctionCtx(existing)
+      await expect(testCommands.recordTestResultCommand.execute(correction, ctx))
+        .rejects.toMatchObject({ status: 409, body: { error: TEST_ERRORS.resultAlreadyRecorded } })
+      expect(existing.value).toBe('40')
+    })
+
+    it('rejects a stale version with the optimistic-lock conflict (409)', async () => {
+      const existing = existingResult()
+      const { ctx } = correctionCtx(existing)
+      await expect(testCommands.recordTestResultCommand.execute(
+        { ...correction, expectedUpdatedAt: '2026-10-28T09:00:00.000Z' },
+        ctx,
+      )).rejects.toMatchObject({ status: 409, body: { code: 'optimistic_lock_conflict' } })
+      expect(existing.value).toBe('40')
+    })
+
+    it('corrects with the current version, sets correctedAt and keeps the first idempotency key', async () => {
+      const existing = existingResult()
+      const { ctx } = correctionCtx(existing)
+      const out = await testCommands.recordTestResultCommand.execute({ ...correction, expectedUpdatedAt: savedAt }, ctx)
+      expect(out.replayed).toBe(false)
+      expect(existing.value).toBe('44')
+      expect(existing.correctedAt).toBeInstanceOf(Date)
+      expect(existing.idempotencyKey).toBe(KEY)
+    })
+
+    it('answers saving the stored trials again as a replay without writing', async () => {
+      const existing = existingResult()
+      const { ctx, em } = correctionCtx(existing)
+      const out = await testCommands.recordTestResultCommand.execute(
+        { ...correction, trials: [{ attemptNo: 1, value: 40 }] },
+        ctx,
+      )
+      expect(out).toMatchObject({ replayed: true, result: { id: 'r-1' } })
+      expect(existing.correctedAt).toBeNull()
+      expect(em.create).not.toHaveBeenCalled()
+    })
+
+    it('maps a concurrent first save of the same player to testResultAlreadyRecorded (409)', async () => {
+      const rows = recordRows()
+      const { ctx } = makeCtx(rows, {
+        findOne: jest.fn<AnyFn>(async (entity: unknown) => (entity === AthletesTestResult ? null : rows.get(entity) ?? null)),
+        transactional: jest.fn<AnyFn>(async () => {
+          throw Object.assign(new Error('duplicate key value violates unique constraint "athletes_test_results_session_player_uq"'), { code: '23505' })
+        }),
+      })
+      await expect(testCommands.recordTestResultCommand.execute(correction, ctx))
+        .rejects.toMatchObject({ status: 409, body: { error: TEST_ERRORS.resultAlreadyRecorded } })
+    })
+  })
+
   it('validates gap states: "Nie wykonał" needs a reason, reasons only with it, no value 0', () => {
     expect(testResultRecordSchema.safeParse({ ...base, state: 'not_performed' }).success).toBe(false)
     expect(testResultRecordSchema.safeParse({ ...base, reasonCode: 'absent' }).success).toBe(false)

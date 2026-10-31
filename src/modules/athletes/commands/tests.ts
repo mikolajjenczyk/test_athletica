@@ -41,6 +41,7 @@ export const TEST_ERRORS = {
   attemptOutOfRange: 'athletes.errors.testAttemptOutOfRange',
   idempotencyKeyReused: 'athletes.errors.testIdempotencyKeyReused',
   resultNotFound: 'athletes.errors.testResultNotFound',
+  resultAlreadyRecorded: 'athletes.errors.testResultAlreadyRecorded',
   resultChangedSinceRecord: 'athletes.errors.testResultChangedSinceRecord',
 } as const
 
@@ -385,6 +386,12 @@ export type TestResultRecordResult = { result: AthletesTestResult; replayed: boo
  * Idempotent: the same `idempotencyKey` returns the stored result without writing again
  * (a retried request after a lost response). A key already used for another session/player
  * — or for a result that was undone — is a 409, never a silent overwrite.
+ *
+ * Correcting an existing result needs the version the client saw (`expectedUpdatedAt`):
+ * without it the save is a 409 `testResultAlreadyRecorded`, with a stale one the standard
+ * `optimistic_lock_conflict` 409. A correction keeps the first `idempotencyKey` (so a late
+ * retry of the original save replays the current result) and sets `correctedAt`. Saving
+ * exactly what is already stored writes nothing and answers like a replay.
  */
 const recordTestResultCommand: CommandHandler<Record<string, unknown>, TestResultRecordResult> = {
   id: 'athletes.test_results.record',
@@ -448,49 +455,70 @@ const recordTestResultCommand: CommandHandler<Record<string, unknown>, TestResul
     const now = new Date()
     let saved: AthletesTestResult
     try {
-      saved = await em.transactional(async (tem) => {
-        const values = {
+      const outcome = await em.transactional(async (tem) => {
+        const existing = await tem.findOne(
+          AthletesTestResult,
+          scoped<AthletesTestResult>(scope, { sessionId: session.id, playerId: player.id }),
+          { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true },
+        )
+        if (existing) {
+          const unchanged = existing.state === derived.state
+            && toNumberOrNull(existing.value) === derived.value
+            && (existing.reasonCode ?? null) === derived.reasonCode
+            && sameTrials(await loadLiveTrials(tem, scope, session.id, player.id), input.trials)
+          if (unchanged) return { row: existing, replayed: true }
+          if (!input.expectedUpdatedAt) throw conflict(TEST_ERRORS.resultAlreadyRecorded)
+          enforceCommandOptimisticLock({
+            resourceKind: 'athletes.test_result',
+            resourceId: String(existing.id),
+            current: existing.updatedAt,
+            expected: input.expectedUpdatedAt,
+            request: ctx.request ?? null,
+          })
+          existing.value = toDecimal(derived.value)
+          existing.state = derived.state
+          existing.reasonCode = derived.reasonCode
+          existing.correctedAt = now
+          existing.updatedAt = now
+          await replaceTrials(tem, scope, session.id, player.id, input.trials, now)
+          return { row: existing, replayed: false }
+        }
+        const row = tem.create(AthletesTestResult, {
           testDefinitionId: definition.id,
           testedOn,
           value: toDecimal(derived.value),
           state: derived.state,
           reasonCode: derived.reasonCode,
           idempotencyKey: input.idempotencyKey,
-        }
-        const existing = await tem.findOne(
-          AthletesTestResult,
-          scoped<AthletesTestResult>(scope, { sessionId: session.id, playerId: player.id }),
-        )
-        let row: AthletesTestResult
-        if (existing) {
-          Object.assign(existing, values)
-          existing.updatedAt = now
-          row = existing
-        } else {
-          row = tem.create(AthletesTestResult, {
-            ...values,
-            sessionId: session.id,
-            playerId: player.id,
-            isMakeup: false,
-            // D113: an individual test never counts in the team average.
-            countsInTeamAverage: session.kind === 'team',
-            correctedAt: null,
-            tenantId: scope.tenantId,
-            organizationId: scope.organizationId,
-            createdAt: now,
-            updatedAt: now,
-          })
-          tem.persist(row)
-        }
+          sessionId: session.id,
+          playerId: player.id,
+          isMakeup: false,
+          // D113: an individual test never counts in the team average.
+          countsInTeamAverage: session.kind === 'team',
+          correctedAt: null,
+          tenantId: scope.tenantId,
+          organizationId: scope.organizationId,
+          createdAt: now,
+          updatedAt: now,
+        })
+        tem.persist(row)
         await replaceTrials(tem, scope, session.id, player.id, input.trials, now)
-        return row
+        return { row, replayed: false }
       })
+      if (outcome.replayed) return { result: outcome.row, replayed: true }
+      saved = outcome.row
     } catch (err) {
-      // A concurrent retry of the same "Dalej" won the race: answer with its result.
-      if (isUniqueViolation(err, RESULT_IDEMPOTENCY_INDEX) || isUniqueViolation(err, RESULT_SESSION_PLAYER_INDEX)) {
+      if (isUniqueViolation(err, RESULT_IDEMPOTENCY_INDEX)) {
+        // A concurrent retry of the same "Dalej" won the race: answer with its result.
         const raced = replay(await findByKey(forkEm(ctx)))
         if (raced) return raced
         throw conflict(TEST_ERRORS.idempotencyKeyReused)
+      }
+      if (isUniqueViolation(err, RESULT_SESSION_PLAYER_INDEX)) {
+        const raced = replay(await findByKey(forkEm(ctx)))
+        if (raced) return raced
+        // Another device recorded this player first: the coach must see it before correcting.
+        throw conflict(TEST_ERRORS.resultAlreadyRecorded)
       }
       throw err
     }
