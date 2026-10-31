@@ -1,11 +1,10 @@
 # E02 — Testy i wyniki
 
 **Date**: 2026-10-28
-**Status**: Draft — gotowość per faza:
-- Faza 1a (katalog z szablonu tylko do odczytu, „Tryb boisko”, widok testu): blokują Q-002 (akceptacja braku offline) i bramka fazy 1 specyfikacji E06.
-- Faza 1b (edycja katalogu przez administratora): blokuje dodatkowo Q-006 (konfiguracja zestawu w MVP).
-- Faza 2 (poprawki, wyniki dodatkowe, CSV): po bramce fazy 1a.
-- Faza 3 (terminy i braki): blokują Q-004 i bramka fazy 2.
+**Status**: Ready for implementation — gotowość per faza (wszystkie decyzje rozstrzygnięte 2026-10-31):
+- Faza 1 (katalog z szablonu tylko do odczytu, „Tryb boisko”, widok testu): bramka fazy 1 specyfikacji E06.
+- Faza 2 (poprawki, wyniki dodatkowe, CSV): bramka fazy 1 i bramka fazy 1 E01 (komponent podglądu importu).
+- Faza 3 (terminy i braki): bramka fazy 2 i bramka fazy 2 E06 (początek sezonu w „Plan sezonu”).
 
 Zakres klienta zatwierdzony (Q-001, 2026-10-28).
 
@@ -31,11 +30,11 @@ Dziś trener zapisuje wyniki testów na kartce lub w arkuszu i przepisuje je wie
 
 ## Goals
 
-- **REQ-001** — Każdy klub ma katalog do 12 definicji testów skopiowany z szablonu Apzumi; administrator klubu edytuje nazwę, wariant, jednostkę, kierunek, liczbę prób, „Powtarzaj co”, kolejność i to, które (najwyżej sześć) są aktywne; próg „Wyraźna zmiana od” i jego źródło są tylko do odczytu (R17, D99, D213, D260, FR-005).
+- **REQ-001** — Każdy klub ma katalog do 12 definicji testów skopiowany z szablonu Apzumi, **tylko do odczytu** w MVP (edycja zestawu po MVP, Q-006): polska nazwa, wariant, jednostka, kierunek, liczba prób, liczona próba, „Wyraźna zmiana od” ze źródłem, „Powtarzaj co”, kolejność; aktywnych jest sześć wskazanych w szablonie (R17, D99, D213, D260, FR-005).
 - **REQ-002** — „Rozpocznij test” pyta tylko o drużynę albo jednego zawodnika i datę; wcześniejsze daty dozwolone, przyszłe i sprzed dołączenia zawodnika nie (D307, D162).
 - **REQ-003** — „Tryb boisko”: duża klawiatura, powody jako duże przyciski, zawodnicy w dowolnej kolejności, „Dalej” do następnego z brakami, cele dotyku 48 px (D310, D331, NFR-007).
 - **REQ-004** — Wynikiem jest najlepsza ważna próba z jednostką; próba odbiegająca o > 10% od ostatniego wyniku lub innych prób ma znak „sprawdź”, bez blokady (R02, D372).
-- **REQ-005** — Bez połączenia „Tryb boisko” blokuje wpisywanie i mówi, co zostało zapisane; nic nie jest zapisane podwójnie (zastępuje D349/NFR-005 — Q-002).
+- **REQ-005** — Bez połączenia „Tryb boisko” blokuje wpisywanie i mówi, co zostało zapisane; nic nie jest zapisane podwójnie (zastępuje D349/NFR-005 — decyzja ostateczna 2026-10-31).
 - **REQ-006** — „Zakończ test” pokazuje podsumowanie (wyniki, „Nie wykonał”, puste pola) i następny krok (D202); niezakończony test jest widoczny na stronie „Zestaw testów” jako „Test w trakcie · Wróć do testu” (wersja na Pulpicie należy do SPEC 7).
 - **REQ-013** — Widok testu pokazuje wyniki drużyny i zawodników z datą, jednostką, stanem luki i „Brak wcześniejszego pomiaru”; serwis odczytu wyników (`athletesTestResultsService`) jest kontraktem dla SPEC 4–7.
 - **REQ-007** — „Edytuj wyniki” poprawia wynik w miejscu z oznaczeniem „poprawiony <data>” (D61) i emituje zdarzenie, na które reagują zatwierdzone raporty (R18, SPEC 6).
@@ -43,7 +42,7 @@ Dziś trener zapisuje wyniki testów na kartce lub w arkuszu i przepisuje je wie
 - **REQ-009** — Import CSV przeszłych wyników z podglądem i odrzuceniami jak w R22 (D177).
 - **REQ-010** — Każda luka ma własny stan: puste, „Próba nieważna”, „Nie wykonał” z powodem, „Dołączył później”; „Brak wcześniejszego pomiaru” wyliczane przy odczycie — nigdy zero (R12).
 - **REQ-011** — Termin = data testu + „Powtarzaj co”; minięty: „termin był <data>” bursztynowo z tekstem, nigdy czerwono (D71, D169).
-- **REQ-012** — „Zrealizowane: N z 6 · od <data>”, „Następne testy”, „Brakujące wyniki”, „Zmień termin” ze starą i nową datą obok siebie (D251, D340, D257).
+- **REQ-012** — „Zrealizowane: N z 6 · od <data>” = ile z sześciu aktywnych testów ma zakończoną sesję drużyny od początku sezonu z „Plan sezonu” (E06); bez ustawionego początku sezonu licznik pokazuje „Ustaw początek sezonu w Planie sezonu”; „Następne testy”, „Brakujące wyniki”, „Zmień termin” ze starą i nową datą obok siebie (D251, D340, D257).
 
 ## Non-goals
 
@@ -80,19 +79,19 @@ W module `athletes`: definicje testów per klub (kopia szablonu z pliku modułu)
 | Próba | Wartość jednej próby zawodnika albo „Próba nieważna” | `athletes_test_trial` | Wartość ujemna / poza zakresem jednostki → 400 |
 | Wynik | Najlepsza ważna próba (R02) albo stan luki; jeden na (sesja, zawodnik) | `athletes_test_result` | Drugi → aktualizacja tego samego (idempotencja) |
 | Stany luk | `empty`, `invalid_attempt` (wszystkie próby nieważne), `not_performed` + powód, `joined_later`; „Brak wcześniejszego pomiaru” wyliczane | `athletes_test_result.state` | Nigdy wartość 0 zamiast stanu |
-| Powód „Nie wykonał” | Kod z listy (Q-003) + opcjonalna notatka (szyfrowana); widzi tylko trener (D109) | `athletes_test_result` | Odpowiedź bez `athletes.tests.record` pomija powód |
+| Powód „Nie wykonał” | Kod z listy: „Nieobecny”, „Zwolniony z zajęć”, „Inny powód” — bez danych o zdrowiu (N17, Q-003); bez wolnego tekstu; widzi tylko trener (D109) | `athletes_test_result` | Odpowiedź bez `athletes.tests.record` pomija powód |
 | „sprawdź” | Najlepsza próba różni się o > 10% od ostatniego wyniku zawodnika w tym teście albo od innej ważnej próby (D372) | wyliczane | tylko znacznik |
 | Wynik nadrobiony | Wynik dopisany do istniejącej sesji po jej dacie; `is_makeup = true` | wynik | Data nadrobienia ≥ data sesji |
 | Test indywidualny | Sesja `kind = individual`; `counts_in_team_average = false` (D113) | sesja + wynik | — |
 | Korekta | Edycja wyniku/próby po zapisie: `corrected_at`, „poprawiony <data>”; emituje `athletes.test_result.corrected` (R18) | wynik | Konflikt wersji → 409 |
 | Termin | `ostatnia data testu drużyny + powtarzaj_co`; zmiana terminu zapisuje starą i nową datę (D257) | wyliczane + `athletes_test_reschedule` | — |
-| „Zrealizowane: N z 6 · od <data>” | definicja — Q-004 | wyliczane | — |
+| „Zrealizowane: N z 6 · od <data>” | Liczba aktywnych definicji z co najmniej jedną zakończoną sesją `team` od `season_starts_on` planu sezonu drużyny (E06) | wyliczane | Brak początku sezonu → komunikat z linkiem do „Plan sezonu” |
 
 ## Users, Permissions, and Scope
 
 | Actor | Allowed outcomes | Scope rule | Required feature IDs |
 |---|---|---|---|
-| Administrator klubu | Edycja katalogu testów i „Powtarzaj co” | własny klub (tenant klubu i jego organizacja) | `athletes.tests.catalog.manage`, `athletes.tests.view` |
+| Administrator klubu | Podgląd katalogu testów (bez edycji w MVP) | własny klub (tenant klubu i jego organizacja) | `athletes.tests.view` |
 | Trener | Rozpoczęcie i zakończenie testu, wpis prób, poprawki, wyniki dodatkowe, import CSV, zmiana terminu; widzi powody | własny klub | `athletes.tests.view`, `athletes.tests.record` |
 | Dyrektor | Podgląd definicji, wyników i terminów bez powodów i notatek | własny klub | `athletes.tests.view` |
 
@@ -105,7 +104,7 @@ Klub to osobny tenant z jedną organizacją `directory` (E06, Q4 po weryfikacji 
 | Drużyna, zawodnik, role | reuse | `athletes` (E06 faza 1) | id w module | Ten sam moduł |
 | Katalog, sesje, próby, wyniki, terminy | app-own | `athletes` | encje modułu | Domena aplikacji |
 | Utworzenie klubu | reuse | `directory` | subskrybent `directory.organization.created` | Kopia szablonu |
-| Podgląd importu | app-own, **właściciel: ta specyfikacja (faza 2)** | `athletes` | komponent podglądu; SPEC 3 (import arkuszy) go używa i zależy od fazy 2 | Jedno zachowanie R22, jeden właściciel |
+| Podgląd importu | reuse | `athletes` (**właściciel: E01 faza 1**, `2026-10-31-e01-dane-dzienne-zawodnikow.md`) | komponent podglądu i parser `.xlsx`/`.csv` | Jedno zachowanie R22, jeden właściciel (zmienione 2026-10-31) |
 | Dziennik zmian | reuse | `audit_logs` | komendy z undo | — |
 
 ## Architecture and Data Flow
@@ -161,7 +160,7 @@ Referencje: `.ai/guides/backend-ui.md`, wzorce `example` (`ui.page-shell`, `ui.d
 
 | Surface / route | Purpose and primary actions | Data source / mutations | Closest installed reference | Canonical shell / components | Required states | Requirement IDs |
 |---|---|---|---|---|---|---|
-| `/backend/athletes/tests` | „Zestaw testów”: lista definicji, aktywne, „Rozpocznij test”; administrator: „Edytuj zestaw testów” | `/api/athletes/test-definitions` | `example/components/TodosTable.tsx` | `Page`, `DataTable`, `CrudForm` (edycja) | loading, empty, error, conflict, permission denied | REQ-001 |
+| `/backend/athletes/tests` | „Zestaw testów”: lista definicji (tylko odczyt), aktywne, „Test w trakcie · Wróć do testu”, „Rozpocznij test” | `GET /api/athletes/test-definitions` | `example/components/TodosTable.tsx` | `Page`, `DataTable` | loading, empty, error, permission denied | REQ-001, REQ-006 |
 | `/backend/athletes/tests/start` | „Rozpocznij test”: drużyna/zawodnik, data | `POST /api/athletes/test-sessions` | `example/backend/todos/create/page.tsx` | `CrudForm` | walidacja dat | REQ-002 |
 | `/backend/athletes/tests/field/[sessionId]` | „Tryb boisko” | `POST /api/athletes/test-results/record`, `POST /api/athletes/test-sessions/finish` | brak bezpośredniego — wyjątek uzasadniony niżej | `Page`, wspólne kontrolki przycisków i pól, region live | loading, offline-blocked, error, conflict, done | REQ-003…REQ-006 |
 | `/backend/athletes/tests/[definitionId]` | Widok testu: sesje, wyniki, stany luk, „Brak wcześniejszego pomiaru” (faza 1, tylko odczyt); „Edytuj wyniki”, „Dodaj wynik”, „Importuj wyniki z CSV” (faza 2) | `/api/athletes/test-results`, `/api/athletes/test-imports/*` | `example/components/TodosTable.tsx` | `DataTable`, `CrudForm`, dialog podglądu | j.w. + stany luk | REQ-007…REQ-010, REQ-013 |
@@ -248,7 +247,7 @@ Wszystkie encje w `src/modules/athletes/data/entities.ts`, standardowe pola zakr
 | `session_id`, `player_id`, `test_definition_id`, `tested_on` | UUID ×3, date | unikalne (session, player); indeks (org, player, definition, tested_on) | no | `tested_on ≥ player.joined_at` (D162) |
 | `value` | decimal, nullable | — | no | najlepsza ważna próba; null dla luk |
 | `state` | enum `recorded`/`empty`/`invalid_attempt`/`not_performed`/`joined_later` | — | no | nigdy 0 zamiast stanu (R12) |
-| `reason_code`, `reason_note` | text null, text null | — | `reason_note` **tak** | tylko dla `not_performed`; widoczne tylko z `athletes.tests.record` (D109) |
+| `reason_code` | enum `absent`/`excused`/`other`, null | — | no | tylko dla `not_performed`; widoczne tylko z `athletes.tests.record` (D109); bez wolnego tekstu |
 | `is_makeup`, `counts_in_team_average` | bool, bool | — | no | individual → false (D113) |
 | `corrected_at` | timestamp null | — | no | „poprawiony <data>” (D61) |
 | `idempotency_key` | text, required | unikalne (org, idempotency_key) | no | z klienta lub z importu |
@@ -295,11 +294,11 @@ Trasy przez `makeCrudRoute` (per-metodowa `metadata`, eksport `openApi`), zapisy
 
 | Method / command | Path / ID | Auth and feature gate | Input | Success response / event | Errors and concurrency | Requirement IDs |
 |---|---|---|---|---|---|---|
-| `GET/PUT` | `/api/athletes/test-definitions` | `.tests.view` / `.tests.catalog.manage` | edytowalne pola; `clearChangeThreshold`, `thresholdSource` odrzucane w PUT | `athletes.test_definition.updated` | 400 (próba zmiany progu), 409 (7. aktywna, wersja) | REQ-001 |
+| `GET` | `/api/athletes/test-definitions` | `.tests.view` | `activeOnly?` | definicje z progiem i źródłem | 403 | REQ-001 |
 | `GET` | `/api/athletes/options/tests` | `.tests.view` | `q`, `activeOnly` | `{ items: [{ id, label }] }` | 403 | REQ-001 |
 | `POST` | `/api/athletes/test-sessions` | `.tests.record` | `{ testDefinitionId, kind, teamId?, playerId?, testedOn }` | 201 / istniejąca otwarta; `athletes.test_session.started` | 400 (daty), 409 | REQ-002 |
 | `POST` | `/api/athletes/test-sessions/finish` | `.tests.record` | `{ id, updatedAt }` | podsumowanie; `athletes.test_session.finished` | 409 | REQ-006 |
-| `POST` | `/api/athletes/test-results/record` | `.tests.record` | `{ sessionId, playerId, trials: [{ attemptNo, value?, isInvalid }], state?, reasonCode?, reasonNote?, idempotencyKey, isMakeup? }` | wynik z `checkFlag`; `athletes.test_result.recorded` | 400, 409; ten sam klucz → ta sama odpowiedź | REQ-003…REQ-005, REQ-008, REQ-010 |
+| `POST` | `/api/athletes/test-results/record` | `.tests.record` | `{ sessionId, playerId, trials: [{ attemptNo, value?, isInvalid }], state?, reasonCode?, idempotencyKey, isMakeup? }` | wynik z `checkFlag`; `athletes.test_result.recorded` | 400, 409; ten sam klucz → ta sama odpowiedź | REQ-003…REQ-005, REQ-008, REQ-010 |
 | `PUT` | `/api/athletes/test-results` | `.tests.record` | korekta prób/stanu + `updatedAt` | `athletes.test_result.corrected` | 409 | REQ-007 |
 | `GET` | `/api/athletes/test-results` | `.tests.view` | `definitionId`, `teamId`, `playerId`, zakres dat | wyniki; bez `reasonCode/Note` dla samego `.view` | 403 | REQ-010 |
 | `POST` | `/api/athletes/test-imports/preview` | `.tests.record` | multipart: plik, `testDefinitionId`, `testedOn`, `teamId` | `{ rows, rejected: [{ line, reason }] }` — bez zapisu | 400 (format) | REQ-009 |
@@ -324,7 +323,7 @@ Brak zadań w tle.
 
 - **Authorization:** funkcje `athletes.tests.*`; dyrektor bez powodów i notatek (D109).
 - **Tenant isolation:** klub = tenant; każdy odczyt i zapis filtruje `tenant_id` + `organization_id` z kontekstu; referencje w zakresie; import dopasowuje tylko w drużynie klubu; brak organizacji → 403.
-- **Sensitive data:** `reason_note` w mapie szyfrowania; kody powodów nie zawierają diagnoz (N17) — lista do akceptacji (Q-003); zawodnicy odszyfrowywani w pamięci tylko na czas dopasowania CSV; pliki CSV nie są przechowywane.
+- **Sensitive data:** brak wolnego tekstu przy wynikach; kody powodów bez danych o zdrowiu (N17, Q-003); zawodnicy odszyfrowywani w pamięci tylko na czas dopasowania CSV; pliki CSV nie są przechowywane.
 - **Abuse and failure modes:** ponowienie z tym samym kluczem nie dubluje; limit rozmiaru pliku (1 MB) i wierszy (500); błędy importu podają numer wiersza bez treści danych osobowych w logach.
 
 ## Integration Coverage
@@ -332,7 +331,7 @@ Brak zadań w tle.
 | Test ID | Level | Setup / fixture | Actions | Assertions | Requirement IDs |
 |---|---|---|---|---|---|
 | TEST-001 | integration | nowy klub (tenant + organizacja) | utworzenie klubu przez operatora; drugi przebieg `seedDefaults` | 12 definicji, brak duplikatów | REQ-001 |
-| TEST-002 | integration | administrator | edycja definicji, 7. aktywna, próba zmiany progu | 409; 400; próg bez zmian | REQ-001 |
+| TEST-002 | integration | administrator, trener | odczyt katalogu; próba zapisu definicji przez API | 6 aktywnych z szablonu, próg ze źródłem; zapis niedostępny (405/403) | REQ-001 |
 | TEST-003 | integration | trener, drużyna | start z datą przyszłą i sprzed dołączenia; poprawny start | 400; sesja `open` | REQ-002 |
 | TEST-004 | integration | sesja | zapis prób, ponowienie z tym samym kluczem, „sprawdź” | jeden wynik = najlepsza próba; flaga przy > 10% | REQ-004, REQ-005 |
 | TEST-005 | UI | „Tryb boisko” | symulacja offline w przeglądarce | klawiatura wyłączona, baner z liczbą zapisanych; po powrocie odblokowanie | REQ-003, REQ-005 |
@@ -351,24 +350,23 @@ Brak zadań w tle.
 
 ### Phase 1 — Katalog testów i „Tryb boisko” (E02-S01 #10)
 
-- **Depends on:** faza 1 E06 (moduł, drużyna, zawodnicy, role); Q-002; część 1b dodatkowo Q-006
+- **Depends on:** faza 1 E06 (moduł, drużyna, zawodnicy, role)
 - **Outcome:** klub ma katalog testów; trener prowadzi test na boisku z połączeniem, kończy go podsumowaniem i widzi wyniki w widoku testu.
 - **Why this order / value delivered:** daje definicje, wyniki i serwis odczytu dla fazy 3 E06, SPEC 4 i SPEC 5; zdejmuje przepisywanie wyników.
 - **Deliverables:**
-  - **1a** — szablon testów, subskrybent i `seedDefaults`; `athletes_test_definition` (katalog tylko do odczytu, aktywne = pierwsze sześć z szablonu), `_session`, `_trial`, `_result`; komendy; trasy definicji (GET), sesji, zapisu i odczytu wyników, opcji testów; `athletesTestResultsService` w DI; strony „Zestaw testów” (z „Test w trakcie · Wróć do testu”), „Rozpocznij test”, „Tryb boisko”, „Zakończ test”, widok testu tylko do odczytu.
-  - **1b** — edycja katalogu przez administratora („Edytuj zestaw testów”, PUT definicji, limit sześciu aktywnych).
-- **Independent slices / estimated commits:** (a) katalog + szablon, (b) sesje, zapis i serwis odczytu, (c) „Tryb boisko” i widok testu — (c) po (b); 1b osobno; ~7 commitów.
-- **Requirements closed:** REQ-001 (1a: odczyt; 1b: edycja), REQ-002…REQ-006, REQ-010 (stany luk przy wpisie), REQ-013
-- **Tests:** TEST-001, TEST-003…TEST-006, TEST-010, TEST-012, TEST-013 (1a); TEST-002 (1b)
+  - szablon testów, subskrybent i `seedDefaults`; `athletes_test_definition` (katalog tylko do odczytu, aktywne = pierwsze sześć z szablonu), `_session`, `_trial`, `_result`; komendy; trasy definicji (GET), sesji, zapisu i odczytu wyników, opcji testów; `athletesTestResultsService` w DI; strony „Zestaw testów” (z „Test w trakcie · Wróć do testu”), „Rozpocznij test”, „Tryb boisko”, „Zakończ test”, widok testu tylko do odczytu.
+- **Independent slices / estimated commits:** (a) katalog + szablon, (b) sesje, zapis i serwis odczytu, (c) „Tryb boisko” i widok testu — (c) po (b); ~6 commitów.
+- **Requirements closed:** REQ-001, REQ-002…REQ-006, REQ-010 (stany luk przy wpisie), REQ-013
+- **Tests:** TEST-001, TEST-002, TEST-003…TEST-006, TEST-010, TEST-012, TEST-013
 - **Validation:** `yarn generate`, `yarn db:generate` (przegląd), `yarn typecheck`, `yarn lint`, `yarn ds:check`, `yarn test`, `yarn test:integration:ephemeral`
 - **Exit gate:** J-002 przechodzi na dwóch klubach; „Tryb boisko” przy 390 px, jasny/ciemny; blokada offline działa; widok testu pokazuje wyniki; J-001 po 1b. **Bramka 1a odblokowuje fazę 3 E06** (zależność zapisana też w specyfikacji E06).
 
 ### Phase 2 — Poprawki, wyniki dodatkowe i import CSV (E02-S02 #11)
 
-- **Depends on:** Phase 1 exit gate
+- **Depends on:** Phase 1 exit gate; bramka fazy 1 E01 (komponent podglądu importu)
 - **Outcome:** historia wyników jest kompletna i uczciwa.
 - **Why this order / value delivered:** poprawki i nadrobienia potrzebują wyników z fazy 1; CSV wprowadza historię sprzed aplikacji.
-- **Deliverables:** korekta z „poprawiony <data>” i zdarzeniem `corrected`; „Dodaj wynik” (nadrobiony, indywidualny); podgląd i import CSV. Ta faza jest **właścicielem** wspólnego komponentu podglądu importu; SPEC 3 (import arkuszy) zależy od jej bramki.
+- **Deliverables:** korekta z „poprawiony <data>” i zdarzeniem `corrected`; „Dodaj wynik” (nadrobiony, indywidualny); podgląd i import CSV na wspólnym komponencie podglądu, którego właścicielem jest E01 faza 1 (zależność: bramka fazy 1 E01).
 - **Independent slices / estimated commits:** korekty, wyniki dodatkowe, CSV równolegle; ~4 commity.
 - **Requirements closed:** REQ-007, REQ-008, REQ-009
 - **Tests:** TEST-007, TEST-008, TEST-009, TEST-012
@@ -377,7 +375,7 @@ Brak zadań w tle.
 
 ### Phase 3 — Terminy i braki (E02-S03 #12)
 
-- **Depends on:** Phase 2 exit gate (lista „Brakujące wyniki” prowadzi do „Dodaj wynik” z fazy 2); Q-004
+- **Depends on:** Phase 2 exit gate (lista „Brakujące wyniki” prowadzi do „Dodaj wynik” z fazy 2); bramka fazy 2 E06 (`season_starts_on`)
 - **Outcome:** trener widzi, co jest do zrobienia i czego brakuje.
 - **Why this order / value delivered:** wspiera cele pilotażu (> 80% testów, > 70% retestów).
 - **Deliverables:** serwis wyliczania terminów i liczników; `athletes_test_reschedule`; strona „Terminy”.
@@ -413,7 +411,6 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`):
 | Szablony ról (nowe funkcje) | REQ-001 | `module.setup-role-features` → `src/modules/example/setup.ts` | 1 | TEST-001 | emitted-example |
 | Encje testów | REQ-001…REQ-012 | `data.entities` → `src/modules/example/data/entities.ts` | 1–3 | TEST-001, TEST-004, TEST-011 | emitted-example |
 | Walidatory | REQ-002, REQ-009 | `data.validators` → `src/modules/example/data/validators.ts` | 1–2 | TEST-003, TEST-009 | emitted-example |
-| Mapa szyfrowania (`reason_note`) | REQ-010 | `data.encryption-map` → `src/modules/example/encryption.ts` | 1 | TEST-010 | emitted-example |
 | Komendy z undo | REQ-002…REQ-008 | `commands.undo-redo` → `src/modules/example/commands/todos.ts` | 1–2 | TEST-004, TEST-007 | emitted-example |
 | Trasy CRUD | REQ-001 | `api.crud-factory` → `src/modules/example/api/customer-priorities/route.ts` | 1–3 | TEST-002 | emitted-example |
 | Trasy własne (record, finish, import, due) | REQ-005, REQ-006, REQ-009, REQ-011 | `api.custom-route` → `src/modules/example/api/organizations/route.ts` | 1–3 | TEST-004, TEST-006, TEST-009, TEST-011 | emitted-example |
@@ -436,13 +433,13 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`):
 
 | Risk / tradeoff | Impact | Mitigation / detection | Residual risk |
 |---|---|---|---|
-| Brak offline na boisku bez zasięgu | Trener wraca do kartki; dzień testów znowu dodaje pracę (guardrail PRD) | Liczba blokad jako wskaźnik; nadrobienie przez „Dodaj wynik” lub CSV; Q-002 do Toma | Średnie — świadoma decyzja |
+| Brak offline na boisku bez zasięgu | Trener wraca do kartki; dzień testów znowu dodaje pracę (guardrail PRD) | Liczba blokad jako wskaźnik; nadrobienie przez „Dodaj wynik” lub CSV | Średnie — decyzja ostateczna (2026-10-31) |
 | Katalog per klub (każdy klub w osobnym tenancie) rozjeżdża nazwy testów między klubami | Porównania klubów i przyszłe benchmarki trudniejsze — wymagają zapytań między tenantami | `template_key` zostaje stały; próg z szablonu | Akceptowane (porównania klubów po MVP) |
 | Treść szablonu nieznana (Q60) | Zmiana testów po uruchomieniu | Synchronizacja szablonu po `template_key` | Niski |
 | Dopasowanie po nazwisku w CSV | Pomyłka przy podobnych nazwiskach | Tylko dokładne dopasowanie po normalizacji; niejednoznaczne odrzucane | Niski |
 | Odszyfrowanie nazwisk na czas importu | Dane w pamięci serwera | Tylko w obrębie żądania, bez logowania | Niski |
 | „sprawdź” wyliczane przy każdym odczycie | Koszt przy dużej historii | Indeks (org, player, definition, tested_on); 1 poprzedni wynik | Niski |
-| Kody powodów mogą wejść w dane zdrowotne | Konflikt z N17, RODO art. 9 | Lista do akceptacji (Q-003); notatka szyfrowana, tylko trener | Średnie do akceptacji |
+| Trener chce zapisać przyczynę zdrowotną | Brak informacji „kontuzja/choroba” w historii | Świadoma decyzja: bez danych o zdrowiu (N17); „Inny powód” | Akceptowane |
 
 ## Acceptance Criteria
 
@@ -457,7 +454,7 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`):
 - [ ] **AC-009** — Import CSV pokazuje podgląd z odrzuconymi wierszami (numer, powód); niejednoznaczny zawodnik i zły format niczego nie zapisują; ponowny import nie dubluje.
 - [ ] **AC-010** — Żadna luka nie jest pokazana ani zapisana jako 0; dyrektor nie widzi powodów.
 - [ ] **AC-011** — Minięty termin brzmi „termin był <data>”, bursztynowo z tekstem.
-- [ ] **AC-012** — „Zmień termin” pokazuje starą i nową datę obok siebie; liczniki zgodne z definicją Q-004.
+- [ ] **AC-012** — „Zmień termin” pokazuje starą i nową datę obok siebie; „Zrealizowane” liczy od początku sezonu z „Plan sezonu”, a bez niego pokazuje prośbę o ustawienie.
 - [ ] **AC-013** — Widok testu i `athletesTestResultsService` zwracają wyniki tylko z klubu użytkownika, z datą, jednostką, stanem luki i „Brak wcześniejszego pomiaru” przy pierwszym wyniku.
 - [ ] Every listed backend surface matches its recorded Open Mercato reference and uses the canonical shell/components, shared API helpers, semantic tokens, and complete loading, empty, error, conflict, keyboard, accessibility, responsive, light-mode, and dark-mode states.
 - [ ] Every affected API and UI path has self-contained integration coverage and the configured validation gate passes.
@@ -473,14 +470,14 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`):
 | UI contracts identify references, canonical components, and theme/state coverage | pass | UI and Interaction Contracts |
 | Every phase has dependencies, bounded slices, tests, value, and an observable exit gate | pass | Implementation Phases |
 
-Verdict: `Blocked — faza 1a: Q-002 (brak offline) i bramka fazy 1 E06; faza 1b dodatkowo Q-006 (edycja zestawu w MVP); faza 3 dodatkowo Q-004`
+Verdict: `Ready for implementation` po bramce fazy 1 E06 (faza 1); faza 2 dodatkowo bramka fazy 1 E01; faza 3 dodatkowo bramka fazy 2 E06.
 
 ## Decisions in play
 
 | Id | Decision | Effect in this spec | Owner |
 |---|---|---|---|
-| D349, NFR-005 | „Tryb boisko” kolejkuje wyniki bez zasięgu | **Proponowane zastąpienie:** brak offline, blokada wpisywania (decyzja użytkownika 2026-10-28) | Tom / klient — Q-002 |
-| PRD Phase 2: „konfiguracja zestawu testów — po MVP” | Konfiguracja zestawu po MVP | **Proponowane zastąpienie:** katalog per klub edytowalny przez administratora już w MVP (faza 1b) | Tom — Q-006 |
+| D349, NFR-005 | „Tryb boisko” kolejkuje wyniki bez zasięgu | **Zastąpione:** brak offline, blokada wpisywania (decyzja ostateczna użytkownika 2026-10-31) | użytkownik |
+| PRD Phase 2: „konfiguracja zestawu testów — po MVP” | Konfiguracja zestawu po MVP | Utrzymane: katalog z szablonu tylko do odczytu w MVP (2026-10-31) | użytkownik |
 | D99 | Próg „Wyraźna zmiana od” ustala Apzumi, tylko odczyt | Utrzymane | Tom |
 | D71 | Retest co 6 czy 7–8 tygodni | Domyślnie 6 tygodni, edytowalne | klient |
 
@@ -489,11 +486,11 @@ Verdict: `Blocked — faza 1a: Q-002 (brak offline) i bramka fazy 1 E06; faza 1b
 | ID | Question | Owner | Blocking? | Resolution / decision date |
 |---|---|---|---|---|
 | Q-001 | Czy klient zatwierdził zakres pierwszej wersji (Q15, D360)? | założyciel klienta / Asia | yes (wszystkie fazy) | 2026-10-28: tak — klient zatwierdził zakres (jak w E06) |
-| Q-002 | Akceptacja zastąpienia D349/NFR-005 (brak offline, blokada wpisywania) | Tom / klient | yes (faza 1a) | pending |
-| Q-006 | Akceptacja edycji zestawu testów przez administratora klubu w MVP (PRD: po MVP) | Tom | yes (faza 1b) | pending |
-| Q-003 | Lista powodów „Nie wykonał” (D331) bez danych medycznych (N17) | Tom / klient | no (domyślnie: nieobecny, kontuzja, choroba, inny — do akceptacji) | pending |
-| Q-004 | Definicja „Zrealizowane: N z 6 · od <data>” (D251): od jakiej daty i co liczy się jako zrealizowane | Tom | yes (faza 3) | pending |
-| Q-005 | Treść szablonu 12 testów i progi (Q60, Q64) | klient | no (szablon tymczasowy z prototypu) | pending |
+| ~~Q-002~~ | Brak offline | użytkownik | — | 2026-10-31: decyzja ostateczna, zastępuje D349/NFR-005 |
+| ~~Q-006~~ | Edycja zestawu w MVP | użytkownik | — | 2026-10-31: po MVP; faza 1b usunięta, katalog tylko do odczytu |
+| ~~Q-003~~ | Powody „Nie wykonał” | użytkownik | — | 2026-10-31: „Nieobecny”, „Zwolniony z zajęć”, „Inny powód”; bez danych o zdrowiu i bez notatki |
+| ~~Q-004~~ | „Zrealizowane: N z 6 · od <data>” | użytkownik | — | 2026-10-31: od początku sezonu z „Plan sezonu” (E06, `season_starts_on`) |
+| ~~Q-005~~ | Szablon testów | użytkownik | — | 2026-10-31: tymczasowy z prototypu, progi puste do Q60/Q64 („znaczenie zmiany wymaga oceny”) |
 | ~~Q1~~ | Podział | użytkownik | — | 2026-10-28: jedna specyfikacja, trzy fazy |
 | ~~Q2~~ | Offline | użytkownik | — | 2026-10-28: brak offline, blokada wpisywania |
 | ~~Q3~~ | Katalog | użytkownik | — | 2026-10-28: per klub z szablonu, próg tylko odczyt |
@@ -507,4 +504,6 @@ Verdict: `Blocked — faza 1a: Q-002 (brak offline) i bramka fazy 1 E06; faza 1b
 | 2026-10-28 | Szkielet z Open Questions Q1–Q5 |
 | 2026-10-28 | Odpowiedzi Q1–Q5 i doprecyzowania; pełna specyfikacja, trzy fazy |
 | 2026-10-28 | Recenzja spójności zakresu: Q-002 rozdzielone (Q-006), faza 1 na 1a/1b, widok testu i serwis odczytu w fazie 1 (REQ-013, TEST-013), „Test w trakcie” na stronie zestawu, ta specyfikacja właścicielem podglądu importu, faza 3 po fazie 2, synchronizacja progów poza zakresem, wskaźniki odczytywane ręcznie |
+| 2026-10-31 | Właściciel komponentu podglądu importu przeniesiony do E01 fazy 1; faza 2 zależy od jej bramki |
+| 2026-10-31 | Rozstrzygnięte Q-002…Q-006: brak offline ostatecznie; katalog tylko do odczytu w MVP (faza 1b usunięta); powody bez danych o zdrowiu i bez notatki; licznik od początku sezonu (E06); szablon tymczasowy z prototypu |
 | 2026-10-28 | Uspójnienie z E06: klub = osobny tenant z jedną organizacją (zakres, izolacja, TEST-001, diagram); Q-001 rozstrzygnięte (klient zatwierdził zakres) |
