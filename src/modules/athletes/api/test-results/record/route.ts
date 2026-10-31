@@ -9,7 +9,8 @@ import { testResultRecordSchema } from '../../../data/validators'
 import type { TestResultRecordResult } from '../../../commands/tests'
 import '../../../commands/tests'
 import { resolveClubRequestContext } from '../../../lib/requestContext'
-import { testResultViewSchema, toTestResultView } from '../../../lib/testResultView'
+import { testResultViewSchema } from '../../../lib/testResultView'
+import { decorateResults } from '../../../lib/testResultsService'
 import { athletesErrorSchema, athletesTag } from '../../openapi'
 
 const logger = createLogger('athletes').child({ component: 'test-result-record-route' })
@@ -21,7 +22,7 @@ export const metadata = {
 const responseSchema = z.object({
   ok: z.literal(true),
   replayed: z.boolean(),
-  result: testResultViewSchema,
+  result: testResultViewSchema.extend({ checkFlag: z.boolean(), noPreviousMeasurement: z.boolean() }),
 })
 
 /**
@@ -30,7 +31,7 @@ const responseSchema = z.object({
  */
 export async function POST(request: Request) {
   try {
-    const { container, scope, userId, commandContext } = await resolveClubRequestContext(request)
+    const { container, em, scope, userId, commandContext } = await resolveClubRequestContext(request)
     const parsed = testResultRecordSchema.safeParse(await readJsonSafe(request))
     if (!parsed.success) {
       return Response.json({ error: 'Invalid payload', issues: parsed.error.issues.map((issue) => ({ path: issue.path, message: issue.message })) }, { status: 400 })
@@ -59,9 +60,11 @@ export async function POST(request: Request) {
       ctx: commandContext,
     })
     await guard.runAfterSuccess()
-    // The caller holds `athletes.tests.record`, so the reason is part of its own answer.
+    // The caller holds `athletes.tests.record`, so the reason is part of its own answer;
+    // "sprawdź" is shown next to the trial without blocking (D372).
+    const [view] = await decorateResults(em, scope, [result.result], { includeReason: true })
     return Response.json(
-      { ok: true, replayed: result.replayed, result: toTestResultView(result.result, { includeReason: true }) },
+      { ok: true, replayed: result.replayed, result: view },
       { status: result.replayed ? 200 : 201 },
     )
   } catch (err) {
