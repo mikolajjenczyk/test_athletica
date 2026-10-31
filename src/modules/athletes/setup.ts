@@ -2,6 +2,7 @@ import type { EntityManager } from '@mikro-orm/postgresql'
 import type { ModuleSetupConfig } from '@open-mercato/shared/modules/setup'
 import { ensureRoles } from '@open-mercato/core/modules/auth/lib/setup-app'
 import { Role } from '@open-mercato/core/modules/auth/data/entities'
+import { ensureClubTestDefinitions } from './lib/testCatalog'
 
 /**
  * A club is its own tenant (spec E06, Q4), so `auth` isolates club accounts natively.
@@ -33,17 +34,22 @@ export const setup: ModuleSetupConfig = {
       'auth.users.list',
       'auth.users.create',
       'auth.users.edit',
+      'athletes.tests.view',
     ],
-    coach: ['athletes.players.view'],
-    director: ['athletes.players.view'],
+    coach: ['athletes.players.view', 'athletes.tests.view', 'athletes.tests.record'],
+    director: ['athletes.players.view', 'athletes.tests.view'],
   },
 
-  async onTenantCreated({ em, tenantId }) {
+  async onTenantCreated({ em, tenantId, organizationId }) {
     await ensureClubRoles(em, tenantId)
+    // The tenant's first club may be created without `directory.organization.created`.
+    await ensureClubTestDefinitions(em, { tenantId, organizationId })
   },
 
-  async seedDefaults({ em, tenantId }) {
+  async seedDefaults({ em, tenantId, organizationId }) {
     await ensureClubRoles(em, tenantId)
+    // Existing clubs get missing template definitions; club definitions are never overwritten.
+    await ensureClubTestDefinitions(em, { tenantId, organizationId })
   },
 }
 

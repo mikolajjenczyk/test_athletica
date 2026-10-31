@@ -39,3 +39,26 @@ export async function resolveClubRequestContext(request: Request): Promise<ClubR
     },
   }
 }
+
+type RbacLike = {
+  userHasAllFeatures: (
+    userId: string,
+    required: string[],
+    scope: { tenantId: string | null; organizationId: string | null },
+  ) => Promise<boolean>
+}
+
+/**
+ * Wildcard-aware feature check in the caller's club (used for response shaping, e.g.
+ * reasons are visible only with `athletes.tests.record` — D109). Fails closed.
+ */
+export async function callerHasClubFeatures(context: ClubRequestContext, features: string[]): Promise<boolean> {
+  let rbac: RbacLike | undefined
+  try {
+    rbac = context.container.resolve('rbacService') as RbacLike
+  } catch {
+    return false
+  }
+  if (!rbac) return false
+  return rbac.userHasAllFeatures(context.userId, features, context.scope)
+}

@@ -14,6 +14,10 @@ const events = [
   { id: 'athletes.player.updated', label: 'Player Updated', entity: 'player', category: 'crud' },
   { id: 'athletes.player.deleted', label: 'Player Deleted', entity: 'player', category: 'crud' },
   { id: 'athletes.club.soft_deleted', label: 'Club Data Deleted', entity: 'club', category: 'lifecycle' },
+  // E02: ids and scope only — never reasons, values or player names.
+  { id: 'athletes.test_session.started', label: 'Test Session Started', entity: 'test_session', category: 'lifecycle' },
+  { id: 'athletes.test_session.finished', label: 'Test Session Finished', entity: 'test_session', category: 'lifecycle' },
+  { id: 'athletes.test_result.recorded', label: 'Test Result Recorded', entity: 'test_result', category: 'lifecycle' },
 ] as const
 
 export const eventsConfig = createModuleEvents({
