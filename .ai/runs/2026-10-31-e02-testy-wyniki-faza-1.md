@@ -50,7 +50,7 @@ Trener prowadzi test drużyny na telefonie w „Tryb boisko” (tylko z połącz
 ### Phase 1: Katalog testów i „Tryb boisko”
 
 - [x] 1.1 Encje, migracja i szablon testów — 191c3c1
-- [ ] 1.2 Kopia szablonu do klubów (subskrybent, seedDefaults)
+- [x] 1.2 Kopia szablonu do klubów (subskrybent, seedDefaults) — a834c24
 - [ ] 1.3 Funkcje ACL i role
 - [ ] 1.4 Walidatory i komendy sesji oraz wyników
 - [ ] 1.5 Trasy API i OpenAPI
