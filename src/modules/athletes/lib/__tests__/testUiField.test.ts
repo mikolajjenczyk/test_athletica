@@ -6,6 +6,7 @@ import {
   countSaved,
   createIdempotencyKey,
   decimalSeparator,
+  describeTestResult,
   emptyFieldEntry,
   isFieldEntryEmpty,
   nextPlayerWithMissing,
@@ -131,5 +132,28 @@ describe('result states (REQ-010)', () => {
     expect(resultStateLabelKey('not_performed')).toBe('athletes.tests.state.notPerformed')
     expect(resultStateLabelKey('joined_later')).toBe('athletes.tests.state.joinedLater')
     expect(reasonLabelKey('excused')).toBe('athletes.tests.reason.excused')
+  })
+})
+
+describe('describeTestResult (AC-010)', () => {
+  it('shows a recorded value with its unit', () => {
+    expect(describeTestResult({ state: 'recorded', value: 43, reasonCode: undefined }, 'cm', 'en')).toEqual({
+      text: '43 cm', stateKey: null, reasonKey: null, isGap: false,
+    })
+  })
+
+  it('shows every gap as words, never 0', () => {
+    for (const state of ['empty', 'invalid_attempt', 'joined_later'] as const) {
+      const described = describeTestResult({ state, value: null }, 'cm', 'en')
+      expect(described.text).toBeNull()
+      expect(described.isGap).toBe(true)
+      expect(described.stateKey).toBe(resultStateLabelKey(state))
+    }
+    expect(describeTestResult({ state: 'recorded', value: null }, 'cm', 'en').stateKey).toBe('athletes.tests.state.empty')
+  })
+
+  it('adds the reason only when the API returned it', () => {
+    expect(describeTestResult({ state: 'not_performed', value: null, reasonCode: 'absent' }, 's', 'pl').reasonKey).toBe('athletes.tests.reason.absent')
+    expect(describeTestResult({ state: 'not_performed', value: null }, 's', 'pl').reasonKey).toBeNull()
   })
 })

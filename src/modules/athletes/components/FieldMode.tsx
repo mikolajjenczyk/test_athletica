@@ -34,6 +34,7 @@ import {
   countSaved,
   createIdempotencyKey,
   decimalSeparator,
+  describeTestResult,
   emptyFieldEntry,
   formatTestName,
   formatTestValue,
@@ -41,7 +42,6 @@ import {
   nextPlayerWithMissing,
   reasonLabelKey,
   recordFingerprint,
-  resultStateLabelKey,
   sanitizeTrialText,
   type FieldEntry,
   type RosterPlayer,
@@ -138,11 +138,10 @@ function isNetworkFailure(err: unknown): boolean {
 }
 
 function describeResult(result: TestResultListItem, unit: string, locale: string, t: Translate): string {
-  if (result.state === 'recorded') return formatTestValue(result.value, unit, locale) ?? t('athletes.tests.state.empty')
-  const key = resultStateLabelKey(result.state)
-  const label = key ? t(key) : t('athletes.tests.state.empty')
-  if (result.state === 'not_performed' && result.reasonCode) return `${label}: ${t(reasonLabelKey(result.reasonCode))}`
-  return label
+  const described = describeTestResult(result, unit, locale)
+  if (described.text !== null) return described.text
+  const label = t(described.stateKey ?? 'athletes.tests.state.empty')
+  return described.reasonKey ? `${label}: ${t(described.reasonKey)}` : label
 }
 
 /**

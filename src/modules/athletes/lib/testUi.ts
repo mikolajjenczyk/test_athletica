@@ -280,3 +280,28 @@ export function resultStateLabelKey(state: TestResultState): string | null {
 export function reasonLabelKey(reason: TestReasonCode): string {
   return `athletes.tests.reason.${reason}`
 }
+
+export type DescribedResult = {
+  /** The formatted value with its unit; null for every gap. */
+  text: string | null
+  /** i18n key of the gap state; null for a recorded value. */
+  stateKey: string | null
+  /** i18n key of the "Nie wykonał" reason — only when the API returned one (D109). */
+  reasonKey: string | null
+  isGap: boolean
+}
+
+/** Value + unit, or the gap state as words — never 0 for a gap (R12, AC-010). */
+export function describeTestResult(
+  result: Pick<TestResultListItem, 'state' | 'value' | 'reasonCode'>,
+  unit: string,
+  locale: string,
+): DescribedResult {
+  if (result.state === 'recorded') {
+    const text = formatTestValue(result.value, unit, locale)
+    if (text !== null) return { text, stateKey: null, reasonKey: null, isGap: false }
+    return { text: null, stateKey: 'athletes.tests.state.empty', reasonKey: null, isGap: true }
+  }
+  const reasonKey = result.state === 'not_performed' && result.reasonCode ? reasonLabelKey(result.reasonCode) : null
+  return { text: null, stateKey: resultStateLabelKey(result.state), reasonKey, isGap: true }
+}
