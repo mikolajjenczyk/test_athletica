@@ -114,6 +114,8 @@
   "athletes.errors.testDefinitionInactive": "Ten test nie jest aktywny w klubie.",
   "athletes.errors.testDefinitionNotInClub": "Wybrany test nie należy do zestawu testów klubu.",
   "athletes.errors.testIdempotencyKeyReused": "Ten zapis został już użyty dla innego wyniku. Odśwież stronę i wpisz próby ponownie.",
+  "athletes.errors.testResultChangedSinceRecord": "Nie można cofnąć: wynik został w międzyczasie poprawiony.",
+  "athletes.errors.testResultNotFound": "Nie znaleziono tego wyniku — mógł zostać w międzyczasie usunięty.",
   "athletes.errors.testSessionAlreadyOpen": "Ten test drużyny jest już w trakcie.",
   "athletes.errors.testSessionFinished": "Ten test został już zakończony.",
   "athletes.errors.testSessionHasResults": "Nie można cofnąć rozpoczęcia testu, który ma zapisane wyniki.",

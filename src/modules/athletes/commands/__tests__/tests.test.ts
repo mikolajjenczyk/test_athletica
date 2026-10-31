@@ -211,6 +211,77 @@ describe('athletes.test_results.record', () => {
   })
 })
 
+describe('athletes.test_results.record undo', () => {
+  const recordedAt = '2026-10-28T10:00:00.000Z'
+  const trialsAfter = [{ attemptNo: 1, value: 43, isInvalid: false }]
+  const afterResult = {
+    id: 'r-1', sessionId: SESSION, playerId: PLAYER, testDefinitionId: DEFINITION, testedOn: '2026-10-28',
+    value: 43, state: 'recorded', reasonCode: null, isMakeup: false, countsInTeamAverage: true,
+    idempotencyKey: KEY, correctedAt: null, updatedAt: recordedAt,
+  }
+  const scopeFields = { sessionId: SESSION, playerId: PLAYER, tenantId: TENANT, organizationId: CLUB_A }
+  const logEntry = {
+    snapshotBefore: { ...scopeFields, result: null, trials: [] },
+    snapshotAfter: { ...scopeFields, result: afterResult, trials: trialsAfter },
+  }
+  const liveTrial = { attemptNo: 1, value: '43', isInvalid: false, deletedAt: null as Date | null }
+
+  function undoRows(result: Record<string, unknown> | null, session: Record<string, unknown> = openSession): Rows {
+    return new Map<unknown, unknown>([
+      [AthletesTestSession, session],
+      [AthletesTestResult, result],
+      ['list:AthletesTestTrial', [liveTrial]],
+    ])
+  }
+
+  it('soft-deletes the result and its trials while it is still what this record wrote', async () => {
+    const current = { id: 'r-1', idempotencyKey: KEY, updatedAt: new Date(recordedAt), deletedAt: null as Date | null }
+    const trial = { ...liveTrial }
+    const rows = undoRows(current)
+    rows.set('list:AthletesTestTrial', [trial])
+    const { ctx } = makeCtx(rows)
+    await testCommands.recordTestResultCommand.undo!({ logEntry, ctx } as never)
+    expect(current.deletedAt).toBeInstanceOf(Date)
+    expect(trial.deletedAt).toBeInstanceOf(Date)
+  })
+
+  it('refuses to undo after a later correction (409) and leaves the data intact', async () => {
+    const current = { id: 'r-1', idempotencyKey: KEY, updatedAt: new Date('2026-10-28T10:05:00.000Z'), deletedAt: null as Date | null }
+    const trial = { ...liveTrial, value: '44' }
+    const rows = undoRows(current)
+    rows.set('list:AthletesTestTrial', [trial])
+    const { ctx } = makeCtx(rows)
+    await expect(testCommands.recordTestResultCommand.undo!({ logEntry, ctx } as never))
+      .rejects.toMatchObject({ status: 409, body: { error: TEST_ERRORS.resultChangedSinceRecord } })
+    expect(current.deletedAt).toBeNull()
+    expect(trial.deletedAt).toBeNull()
+  })
+
+  it('refuses to undo when only the trials changed since the record (409)', async () => {
+    const current = { id: 'r-1', idempotencyKey: KEY, updatedAt: new Date(recordedAt), deletedAt: null as Date | null }
+    const rows = undoRows(current)
+    rows.set('list:AthletesTestTrial', [{ ...liveTrial, value: '41' }])
+    const { ctx } = makeCtx(rows)
+    await expect(testCommands.recordTestResultCommand.undo!({ logEntry, ctx } as never))
+      .rejects.toMatchObject({ status: 409, body: { error: TEST_ERRORS.resultChangedSinceRecord } })
+    expect(current.deletedAt).toBeNull()
+  })
+
+  it('refuses to undo in a finished session (409)', async () => {
+    const current = { id: 'r-1', idempotencyKey: KEY, updatedAt: new Date(recordedAt), deletedAt: null as Date | null }
+    const { ctx } = makeCtx(undoRows(current, { ...openSession, status: 'finished' }))
+    await expect(testCommands.recordTestResultCommand.undo!({ logEntry, ctx } as never))
+      .rejects.toMatchObject({ status: 409, body: { error: TEST_ERRORS.sessionFinished } })
+    expect(current.deletedAt).toBeNull()
+  })
+
+  it('answers a missing result with a result-specific code', async () => {
+    const { ctx } = makeCtx(undoRows(null))
+    await expect(testCommands.recordTestResultCommand.undo!({ logEntry, ctx } as never))
+      .rejects.toMatchObject({ status: 409, body: { error: TEST_ERRORS.resultNotFound } })
+  })
+})
+
 describe('athletes.test_sessions.finish', () => {
   it('finishes an open session and summarizes results, "Nie wykonał" and empty fields', async () => {
     const session = { ...openSession }

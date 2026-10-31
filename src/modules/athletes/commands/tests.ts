@@ -1,3 +1,4 @@
+import { LockMode } from '@mikro-orm/core'
 import type { EntityManager, FilterQuery } from '@mikro-orm/postgresql'
 import type { CommandHandler, CommandRuntimeContext } from '@open-mercato/shared/lib/commands'
 import { registerCommand } from '@open-mercato/shared/lib/commands'
@@ -39,6 +40,8 @@ export const TEST_ERRORS = {
   sessionAlreadyOpen: 'athletes.errors.testSessionAlreadyOpen',
   attemptOutOfRange: 'athletes.errors.testAttemptOutOfRange',
   idempotencyKeyReused: 'athletes.errors.testIdempotencyKeyReused',
+  resultNotFound: 'athletes.errors.testResultNotFound',
+  resultChangedSinceRecord: 'athletes.errors.testResultChangedSinceRecord',
 } as const
 
 const ONE_OPEN_SESSION_INDEX = 'athletes_test_sessions_one_open_uq'
@@ -116,6 +119,8 @@ type ResultSnapshot = {
   isMakeup: boolean
   countsInTeamAverage: boolean
   idempotencyKey: string
+  correctedAt: string | null
+  updatedAt: string | null
 }
 
 type RecordSnapshot = {
@@ -141,11 +146,39 @@ function serializeResult(row: AthletesTestResult): ResultSnapshot {
     isMakeup: !!row.isMakeup,
     countsInTeamAverage: !!row.countsInTeamAverage,
     idempotencyKey: row.idempotencyKey,
+    correctedAt: toIso(row.correctedAt),
+    updatedAt: toIso(row.updatedAt),
   }
 }
 
 function serializeTrial(row: AthletesTestTrial): TrialSnapshot {
   return { attemptNo: row.attemptNo, value: toNumberOrNull(row.value), isInvalid: !!row.isInvalid }
+}
+
+/** Trials as they are stored: entries with neither a value nor "Próba nieważna" are dropped. */
+function normalizeTrials(
+  trials: ReadonlyArray<{ attemptNo: number; value?: number | string | null; isInvalid?: boolean }>,
+): TrialSnapshot[] {
+  const out: TrialSnapshot[] = []
+  for (const trial of trials) {
+    const isInvalid = !!trial.isInvalid
+    const value = isInvalid ? null : toNumberOrNull(trial.value ?? null)
+    if (!isInvalid && value === null) continue
+    out.push({ attemptNo: trial.attemptNo, value, isInvalid })
+  }
+  return out.sort((a, b) => a.attemptNo - b.attemptNo)
+}
+
+function sameTrials(
+  a: ReadonlyArray<{ attemptNo: number; value?: number | string | null; isInvalid?: boolean }>,
+  b: ReadonlyArray<{ attemptNo: number; value?: number | string | null; isInvalid?: boolean }>,
+): boolean {
+  return JSON.stringify(normalizeTrials(a)) === JSON.stringify(normalizeTrials(b))
+}
+
+async function loadLiveTrials(em: EntityManager, scope: ClubScope, sessionId: string, playerId: string) {
+  const rows = await em.find(AthletesTestTrial, scoped<AthletesTestTrial>(scope, { sessionId, playerId }))
+  return rows.map(serializeTrial)
 }
 
 async function loadRecordSnapshot(
@@ -493,6 +526,11 @@ const recordTestResultCommand: CommandHandler<Record<string, unknown>, TestResul
       snapshotAfter: (snapshots.after as RecordSnapshot | undefined) ?? null,
     }
   },
+  /**
+   * Undo restores the result as it was before this record — but only while the result is
+   * still exactly what this record wrote and the session is open. A later correction (or a
+   * finished session) makes the undo stale: 409, nothing is changed.
+   */
   async undo({ logEntry, ctx }) {
     const before = (logEntry.snapshotBefore as RecordSnapshot | null | undefined) ?? null
     const after = (logEntry.snapshotAfter as RecordSnapshot | null | undefined) ?? null
@@ -504,23 +542,34 @@ const recordTestResultCommand: CommandHandler<Record<string, unknown>, TestResul
     const em = forkEm(ctx)
     const now = new Date()
     await em.transactional(async (tem) => {
+      const session = await tem.findOne(AthletesTestSession, scoped<AthletesTestSession>(scope, { id: ref.sessionId }))
+      if (!session) throw conflict(TEST_ERRORS.sessionNotFound)
+      if (session.status !== 'open') throw conflict(TEST_ERRORS.sessionFinished)
       const current = await tem.findOne(
         AthletesTestResult,
         scoped<AthletesTestResult>(scope, { sessionId: ref.sessionId, playerId: ref.playerId }),
+        { lockMode: LockMode.PESSIMISTIC_WRITE },
       )
+      if (!current) throw conflict(TEST_ERRORS.resultNotFound)
+      const recorded = after?.result ?? null
+      const unchanged = !!recorded
+        && String(current.id) === recorded.id
+        && current.idempotencyKey === recorded.idempotencyKey
+        && (recorded.updatedAt == null || toIso(current.updatedAt) === recorded.updatedAt)
+        && sameTrials(await loadLiveTrials(tem, scope, ref.sessionId, ref.playerId), after?.trials ?? [])
+      if (!unchanged) throw conflict(TEST_ERRORS.resultChangedSinceRecord)
+
       if (!before?.result) {
-        if (current) {
-          current.deletedAt = now
-          current.updatedAt = now
-        }
+        current.deletedAt = now
+        current.updatedAt = now
         await replaceTrials(tem, scope, ref.sessionId, ref.playerId, [], now)
         return
       }
-      if (!current) throw conflict(TEST_ERRORS.sessionNotFound)
       current.value = toDecimal(before.result.value)
       current.state = before.result.state
       current.reasonCode = before.result.reasonCode
       current.idempotencyKey = before.result.idempotencyKey
+      current.correctedAt = before.result.correctedAt ? new Date(before.result.correctedAt) : null
       current.updatedAt = now
       await replaceTrials(tem, scope, ref.sessionId, ref.playerId, before.trials, now)
     })
