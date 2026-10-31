@@ -56,7 +56,7 @@ Trener prowadzi test drużyny na telefonie w „Tryb boisko” (tylko z połącz
 - [x] 1.5 Trasy API i OpenAPI — 3363faa, 06488f1
 - [x] 1.6 Serwis athletesTestResultsService — 46a629c
 - [x] 1.7 Strony „Zestaw testów” i „Rozpocznij test” — 580bb8e
-- [ ] 1.8 Strona „Tryb boisko”
+- [x] 1.8 Strona „Tryb boisko” — e076b34
 - [ ] 1.9 Widok testu
 - [ ] 1.10 Tłumaczenia pl/en
 - [ ] 1.11 Testy jednostkowe i integracyjne
