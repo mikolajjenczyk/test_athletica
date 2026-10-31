@@ -352,11 +352,13 @@ Source doc: .ai/specs/2026-10-28-e02-testy-i-wyniki.md
 
 | Phase | State | Dependencies | Acceptance IDs | Focused validation | Exit gate |
 |---|---|---|---|---|---|
-| Phase 1 — Katalog testów i „Tryb boisko” | pending (odblokowana: E06 faza 1 `verified` 2026-10-31) | E06 faza 1 `verified` | AC-001…AC-006, AC-010, AC-013 | `yarn test:integration:ephemeral --filter athletes` | J-002 na dwóch klubach, 390 px, jasny/ciemny |
+| Phase 1 — Katalog testów i „Tryb boisko” | **verified** (2026-10-31, PR #28) | E06 faza 1 `verified` | AC-001…AC-006, AC-010, AC-013 | `yarn test:integration:ephemeral --filter athletes` | J-002 na dwóch klubach, 390 px, jasny/ciemny |
 | Phase 2 — Poprawki, wyniki dodatkowe, CSV | pending | Phase 1, E01 faza 1 | AC-007…AC-009 | j.w. | J-003 |
 | Phase 3 — Terminy i braki | pending | Phase 2, E06 faza 2 | AC-011, AC-012 | j.w. | J-004 |
 
 2026-10-31: start fazy 1 wstrzymany przez `om-auto-implement-spec` — zależność E06 faza 1 nie jest `verified`, bo efemeryczne środowisko testów nie przechodzi sondy gotowości (`/api/customers/people`, moduł `customers` wyłączony). Szczegóły w Implementation Status specyfikacji E06.
+
+Faza 1 zweryfikowana 2026-10-31 (PR #28): `yarn test:integration:ephemeral --filter athletes --no-reuse-env` — 13/13 (TC-ATH-005…008 pokrywają TEST-001…006, 010, 012, 013); jednostkowe 96/96; generate, typecheck, lint, ds:check, test, build — zielone; przegląd kodu po poprawkach: APPROVE. Odstępstwa: trasy `/backend/tests…`; zawodnik dołączony po dacie testu nie jest na liście „Trybu boisko” (stanu „Dołączył później” nie wpisuje się w fazie 1); zapisy do katalogu dają 404 (brak handlera); administrator klubu zapisuje wyniki i widzi powody (decyzja A). Uwagi niezatrzymujące z przeglądu: zgłoszenie follow-up.
 
 ## Implementation Phases
 

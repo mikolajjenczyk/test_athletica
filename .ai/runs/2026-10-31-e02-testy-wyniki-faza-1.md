@@ -45,6 +45,8 @@ Trener prowadzi test drużyny na telefonie w „Tryb boisko” (tylko z połącz
 
 ## Progress
 
+PR: #28
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Katalog testów i „Tryb boisko”
