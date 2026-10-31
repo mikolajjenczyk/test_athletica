@@ -3,18 +3,40 @@
 import * as React from 'react'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { SwitchField } from '@open-mercato/ui/primitives/switch-field'
+import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 
 /**
- * "Ukryj nazwiska" (REQ-005, D184): a per-browser view preference, NOT a security
- * control — API responses are unchanged. Every screen of the athletes module renders
- * person names only through `PersonName` / `formatPersonName`, so one toggle covers all.
+ * "Ukryj nazwiska" (REQ-005, D184): a per-user, per-browser view preference, NOT a
+ * security control — API responses are unchanged. Every screen of the athletes module
+ * renders person names only through `PersonName` / `formatPersonName`, so one toggle covers all.
  */
-const STORAGE_KEY = 'athletes.hideNames'
+const STORAGE_KEY_PREFIX = 'athletes.hideNames'
 const CHANGE_EVENT = 'athletes:hide-names-changed'
 
-function readHideNames(): boolean {
+// `PersonName` renders once per table row, so the user id is fetched once per page load
+// (same `/api/auth/feature-check` hop as the shared `useCurrentUserId`) and reused.
+let currentUserIdPromise: Promise<string> | null = null
+function loadCurrentUserId(): Promise<string> {
+  if (!currentUserIdPromise) {
+    currentUserIdPromise = apiCall<{ userId?: string }>('/api/auth/feature-check', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ features: [] }),
+    })
+      .then((res) => (res.ok && typeof res.result?.userId === 'string' ? res.result.userId : ''))
+      .catch(() => '')
+  }
+  return currentUserIdPromise
+}
+
+function storageKey(userId: string): string {
+  return `${STORAGE_KEY_PREFIX}.${userId}`
+}
+
+function readHideNames(userId: string): boolean {
+  if (!userId) return false
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === '1'
+    return window.localStorage.getItem(storageKey(userId)) === '1'
   } catch {
     return false
   }
@@ -23,21 +45,31 @@ function readHideNames(): boolean {
 export function useHideNames(): [boolean, (next: boolean) => void] {
   // Server render and first client render agree on `false`; the stored value applies after mount.
   const [hidden, setHidden] = React.useState(false)
+  const userIdRef = React.useRef('')
   React.useEffect(() => {
-    setHidden(readHideNames())
-    const sync = () => setHidden(readHideNames())
+    let cancelled = false
+    const sync = () => setHidden(readHideNames(userIdRef.current))
+    void loadCurrentUserId().then((userId) => {
+      if (cancelled) return
+      userIdRef.current = userId
+      sync()
+    })
     window.addEventListener(CHANGE_EVENT, sync)
     window.addEventListener('storage', sync)
     return () => {
+      cancelled = true
       window.removeEventListener(CHANGE_EVENT, sync)
       window.removeEventListener('storage', sync)
     }
   }, [])
   const update = React.useCallback((next: boolean) => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next ? '1' : '0')
-    } catch {
-      // Storage unavailable (private mode): keep the preference for this page only.
+    const userId = userIdRef.current
+    if (userId) {
+      try {
+        window.localStorage.setItem(storageKey(userId), next ? '1' : '0')
+      } catch {
+        // Storage unavailable (private mode): keep the preference for this page only.
+      }
     }
     setHidden(next)
     window.dispatchEvent(new Event(CHANGE_EVENT))

@@ -352,7 +352,7 @@ Source doc: .ai/specs/2026-10-28-e02-testy-i-wyniki.md
 
 | Phase | State | Dependencies | Acceptance IDs | Focused validation | Exit gate |
 |---|---|---|---|---|---|
-| Phase 1 — Katalog testów i „Tryb boisko” | pending (zablokowana) | E06 faza 1 `verified` | AC-001…AC-006, AC-010, AC-013 | `yarn test:integration:ephemeral --filter athletes` | J-002 na dwóch klubach, 390 px, jasny/ciemny |
+| Phase 1 — Katalog testów i „Tryb boisko” | pending (odblokowana: E06 faza 1 `verified` 2026-10-31) | E06 faza 1 `verified` | AC-001…AC-006, AC-010, AC-013 | `yarn test:integration:ephemeral --filter athletes` | J-002 na dwóch klubach, 390 px, jasny/ciemny |
 | Phase 2 — Poprawki, wyniki dodatkowe, CSV | pending | Phase 1, E01 faza 1 | AC-007…AC-009 | j.w. | J-003 |
 | Phase 3 — Terminy i braki | pending | Phase 2, E06 faza 2 | AC-011, AC-012 | j.w. | J-004 |
 
