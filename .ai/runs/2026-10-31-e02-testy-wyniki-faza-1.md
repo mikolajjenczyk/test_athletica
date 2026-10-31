@@ -54,7 +54,7 @@ Trener prowadzi test drużyny na telefonie w „Tryb boisko” (tylko z połącz
 - [x] 1.3 Funkcje ACL i role — 766d023
 - [x] 1.4 Walidatory i komendy sesji oraz wyników — 6e6b572
 - [x] 1.5 Trasy API i OpenAPI — 3363faa, 06488f1
-- [ ] 1.6 Serwis athletesTestResultsService
+- [x] 1.6 Serwis athletesTestResultsService — 46a629c
 - [ ] 1.7 Strony „Zestaw testów” i „Rozpocznij test”
 - [ ] 1.8 Strona „Tryb boisko”
 - [ ] 1.9 Widok testu
