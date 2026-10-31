@@ -51,7 +51,7 @@ Trener prowadzi test drużyny na telefonie w „Tryb boisko” (tylko z połącz
 
 - [x] 1.1 Encje, migracja i szablon testów — 191c3c1
 - [x] 1.2 Kopia szablonu do klubów (subskrybent, seedDefaults) — a834c24
-- [ ] 1.3 Funkcje ACL i role
+- [x] 1.3 Funkcje ACL i role — 766d023
 - [ ] 1.4 Walidatory i komendy sesji oraz wyników
 - [ ] 1.5 Trasy API i OpenAPI
 - [ ] 1.6 Serwis athletesTestResultsService
