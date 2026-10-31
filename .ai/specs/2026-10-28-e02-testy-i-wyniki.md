@@ -346,6 +346,18 @@ Brak zadań w tle.
 
 Ścieżki: `.ai/qa/tests/athletes/tests-*.spec.ts`.
 
+## Implementation Status
+
+Source doc: .ai/specs/2026-10-28-e02-testy-i-wyniki.md
+
+| Phase | State | Dependencies | Acceptance IDs | Focused validation | Exit gate |
+|---|---|---|---|---|---|
+| Phase 1 — Katalog testów i „Tryb boisko” | pending (zablokowana) | E06 faza 1 `verified` | AC-001…AC-006, AC-010, AC-013 | `yarn test:integration:ephemeral --filter athletes` | J-002 na dwóch klubach, 390 px, jasny/ciemny |
+| Phase 2 — Poprawki, wyniki dodatkowe, CSV | pending | Phase 1, E01 faza 1 | AC-007…AC-009 | j.w. | J-003 |
+| Phase 3 — Terminy i braki | pending | Phase 2, E06 faza 2 | AC-011, AC-012 | j.w. | J-004 |
+
+2026-10-31: start fazy 1 wstrzymany przez `om-auto-implement-spec` — zależność E06 faza 1 nie jest `verified`, bo efemeryczne środowisko testów nie przechodzi sondy gotowości (`/api/customers/people`, moduł `customers` wyłączony). Szczegóły w Implementation Status specyfikacji E06.
+
 ## Implementation Phases
 
 ### Phase 1 — Katalog testów i „Tryb boisko” (E02-S01 #10)

@@ -434,6 +434,9 @@ Kroki:
 | Phase | State | Evidence |
 |---|---|---|
 | 1 | implemented, pending verification in app | branch `feat/e06-phase-1-club`: moduł `athletes` (encje, komendy z undo, trasy CRUD/opcje/`invite-status`/`club/delete-request`, role klubowe, strony `/backend/club`, `/backend/players`, `/backend/accounts`, `/backend/accounts/delete-club`); testy jednostkowe 10/10; test API `.ai/qa/tests/athletes/TC-ATH-001` napisany, nieuruchomiony (brak środowiska); migracja wygenerowana, niezastosowana |
+
+Próba weryfikacji fazy 1 (2026-10-31): `yarn test:integration:ephemeral --filter athletes` zbudował środowisko i uruchomił aplikację, ale runner nie uznał jej za gotową — sonda gotowości w `@open-mercato/cli` wymaga `GET /api/customers/people` (200), a moduł `customers` nie jest włączony (404). Sonda nie jest konfigurowalna. Faza 1 pozostaje niezweryfikowana; odblokowanie wymaga decyzji: włączyć `customers` na potrzeby testów, zmienić narzędzie upstream albo zaakceptować inną ścieżkę weryfikacji (AGENTS.md: „Never migrate to validate”).
+
 | 2 | pending | — |
 | 3 | blocked | bramka fazy 1 E02 |
 
