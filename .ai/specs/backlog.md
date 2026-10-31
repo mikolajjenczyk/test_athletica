@@ -36,13 +36,13 @@ Last filed: 2026-10-28
 
 ### Kolejność specyfikacji i implementacji (2026-10-28)
 
-Bramka: wg PRD (D360) specyfikacje techniczne czekają na zatwierdzenie zakresu przez klienta (Q15). Każdy epik to nowa zdolność (schemat, API), więc wymaga specyfikacji `om-spec-writing` przed kodem; implementacja faza po fazie przez `om-auto-implement-spec` lub `om-implement-spec`. Historie P1 są ostatnimi fazami swoich specyfikacji. Do porównania z D258 (kolejność specyfikacji z repo discovery, niedostępna tutaj).
+Bramka: wg PRD (D360) specyfikacje techniczne czekały na zatwierdzenie zakresu przez klienta (Q15) — **spełniona 2026-10-28** (klient zatwierdził zakres). Każdy epik to nowa zdolność (schemat, API), więc wymaga specyfikacji `om-spec-writing` przed kodem; implementacja faza po fazie przez `om-auto-implement-spec` lub `om-implement-spec`. Historie P1 są ostatnimi fazami swoich specyfikacji. Do porównania z D258 (kolejność specyfikacji z repo discovery, niedostępna tutaj).
 
 | # | Specyfikacja | Historie | Skille przy implementacji | Blokuje specyfikację |
 |---|---|---|---|---|
-| 1 | E06 — klub, cele i zalecenia: `2026-10-28-e06-cele-zalecenia-klub.md` (Ready: fazy 1–2; faza 3 zablokowana) | faza 1: E06-S03, E06-S03-T01 (#22, #26); faza 2: E06-S01 cele drużyny/zawodnika i plan (#20); faza 3 po SPEC 2: cel testu (#20) i E06-S02 zalecenia (#21) | om-module-scaffold, om-data-model-design, om-system-extension, om-backend-ui-design | Q-001 rozstrzygnięte 2026-10-28; faza 1: weryfikacja `auth`; faza 3: Q-002 + bramka SPEC 2 |
-| 2 | Testy i wyniki | E02-S01 → S02 → S03 (#10, #11, #12) | om-module-scaffold, om-backend-ui-design, om-integration-builder (CSV) | Q60 tylko treść testów |
-| 3 | Dane dzienne: wgrywanie arkuszy | E01-S01, E01-S01-T01 (#8, #23) | om-integration-builder, om-data-model-design (R23) | D334, D301; A07 przed odbiorem |
+| 1 | E06 — klub, cele i zalecenia: `2026-10-28-e06-cele-zalecenia-klub.md` (Ready: fazy 1–2; faza 3 zablokowana) | faza 1: E06-S03, E06-S03-T01 (#22, #26); faza 2: E06-S01 cele drużyny/zawodnika i plan (#20); faza 3 po SPEC 2: cel testu (#20) i E06-S02 zalecenia (#21) | om-module-scaffold, om-data-model-design, om-system-extension, om-backend-ui-design | faza 3: bramka fazy 1 E02 (wszystkie pytania rozstrzygnięte 2026-10-31) |
+| 2 | Testy i wyniki: `2026-10-28-e02-testy-i-wyniki.md` (Ready) | E02-S01 → S02 → S03 (#10, #11, #12) | om-module-scaffold, om-backend-ui-design, om-integration-builder (CSV) | faza 1: bramka fazy 1 E06; faza 2: bramka fazy 1 E01 (podgląd importu); faza 3: bramka fazy 2 E06 (początek sezonu) |
+| 3 | Dane dzienne i Pulpit v1: `2026-10-31-e01-dane-dzienne-zawodnikow.md` (Ready) | E01-S01, E01-S01-T01, E01-S02 v1 (#8, #23, #9) | om-integration-builder, om-data-model-design (R23), om-backend-ui-design | faza 1: bramka fazy 1 E06 (właściciel podglądu importu dla E02) |
 | 4 | Karta zawodnika i strona drużyny | E03-S01 → S02 (#13, #14) | om-backend-ui-design, om-module-scaffold | brak (Q64 nieblokujące) |
 | 5 | Obserwacje AI i decyzje trenera | E04-S01, E04-S01-T01 → S02 → S03 (#15, #24, #16, #17) | om-create-ai-agent, om-module-scaffold | Q17; pytania 1 i 5 do Toma |
 | 6 | Raporty, PDF i widok dyrektora | E05-S01, E05-S01-T01 → S02 (#18, #25, #19) | om-module-scaffold, om-backend-ui-design | R19 vs R21 (Tom); Q82 |

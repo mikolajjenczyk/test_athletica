@@ -4,7 +4,7 @@
 **Status**: Ready for implementation — fazy 1–2; faza 3 zablokowana. Gotowość per faza:
 - Faza 1 (klub): gotowa; zaczyna się weryfikacją kontraktu `auth` (krok 1).
 - Faza 2 (cele drużyny/zawodnika, plan sezonu): gotowa po bramce wyjścia fazy 1.
-- Faza 3 (cel testu, zalecenia): zablokowana — Q-002 i bramka wyjścia SPEC 2 („Testy i wyniki”).
+- Faza 3 (cel testu, zalecenia): zablokowana tylko bramką fazy 1 specyfikacji `2026-10-28-e02-testy-i-wyniki.md` („Testy i wyniki”); Q-002 rozstrzygnięte 2026-10-31.
 
 > Źródła: `.ai/specs/2026-10-22-prd.md` (Stories 13–15, NFR-001, NFR-004), epik [#6](https://github.com/mikolajjenczyk/test_athletica/issues/6), historie [#20](https://github.com/mikolajjenczyk/test_athletica/issues/20) (E06-S01), [#21](https://github.com/mikolajjenczyk/test_athletica/issues/21) (E06-S02), [#22](https://github.com/mikolajjenczyk/test_athletica/issues/22) (E06-S03), zadanie [#26](https://github.com/mikolajjenczyk/test_athletica/issues/26) (E06-S03-T01), prototyp `.ai/prototypes/discovery/Atletica-prototyp-lo-fi-rev-053/index.html`. Brak `product-brief.md` w tym repo — ids D/R/N/Q pochodzą z PRD.
 
@@ -35,8 +35,8 @@ Dziś operator ręcznie przypisuje każdemu użytkownikowi klub (D33), w repo ni
 - **REQ-005** — „Ukryj nazwiska” ukrywa nazwisko każdej osoby na ekranach tej specyfikacji (D184). Wspólny komponent wyświetlania nazwiska jest kontraktem, którego używają ekrany SPEC 2–8.
 - **REQ-006** — Trener ustawia „Cel drużyny” i „Cel zawodnika” i sam je odhacza (D223, D226).
 - **REQ-007** — Trener ustawia „Cel” na teście: wartość, termin, autor, powód (D223) — faza 3, po bramce wyjścia SPEC 2.
-- **REQ-008** — Trener prowadzi „Plan sezonu”: cel sezonu z datą, kluczowe wydarzenia (data, opcjonalna data końca, nazwa), opcjonalny typowy tydzień, jako zwykły edytowalny tekst, bez planu miesiąc po miesiącu (D336). Oznaczenie okresu zmęczenia dla AI dochodzi po Q-003.
-- **REQ-009** — Trener daje zalecenie powiązane z testami; każdy test ma własny stan; jedna ocena „Ocena realizacji i efektu zalecenia” w trzech częściach; „Jeszcze nie można ocenić” zostawia je otwarte (D200, D246, D270).
+- **REQ-008** — Trener prowadzi „Plan sezonu”: początek sezonu (data), cel sezonu z datą, kluczowe wydarzenia (data, opcjonalna data końca, nazwa, flaga „planowane zmęczenie”), opcjonalny typowy tydzień jako zwykły edytowalny tekst, bez planu miesiąc po miesiącu (D336). Flagę czyta AI (D288); początek sezonu liczy „Zrealizowane: N z 6 · od <data>” w E02.
+- **REQ-009** — Trener daje zalecenie powiązane z testami; każdy test ma własny stan; jedna ocena „Ocena realizacji i efektu zalecenia” w trzech polach tekstowych: „Realizacja”, „Efekt”, „Wnioski”; „Jeszcze nie można ocenić” zostawia je otwarte (D200, D246, D270).
 - **REQ-010** — Dyrektor widzi przy zaleceniu testy, daty, stan i wybór oceny, ale nigdy tekstu trenera (D265).
 
 ## Non-goals
@@ -51,13 +51,13 @@ Dziś operator ręcznie przypisuje każdemu użytkownikowi klub (D33), w repo ni
 
 ## Proposed Solution
 
-Nowy moduł aplikacji `athletes` (id z PRD, `src/modules/athletes/`), zbudowany przez `om-module-scaffold` na wzorcach `src/modules/example`. Klub to organizacja w zainstalowanym `directory` w jednym tenancie aplikacji (Q4 → A); izolację daje zakres organizacji wyprowadzany z zaufanego kontekstu. Konta, hasła, zaproszenia, role i dezaktywacja zostają w zainstalowanym `auth` — moduł dodaje tylko zestawy funkcji ACL dla trzech ról klubowych i stronę „Status konta”, która woła API `auth`. Moduł posiada encje drużyny, pozycji, zawodnika, celów, planu sezonu i zaleceń. Jedna specyfikacja, trzy fazy (Q1). Fazy 1 i 2 nie zależą od innych specyfikacji. Faza 3 (cel testu i zalecenia) używa definicji i wyników testów z SPEC 2 („Testy i wyniki”, ten sam moduł) i startuje dopiero po jej bramce wyjścia — E06 jest więc dostarczany przed SPEC 2 (fazy 1–2) i po niej (faza 3).
+Nowy moduł aplikacji `athletes` (id z PRD, `src/modules/athletes/`), zbudowany przez `om-module-scaffold` na wzorcach `src/modules/example`. Klub to osobny tenant z jedną organizacją `directory` (Q4, zmienione 2026-10-28 po weryfikacji `auth` w kroku 1); izolację daje zakres tenanta i organizacji wyprowadzany z zaufanego kontekstu. Konta, hasła, zaproszenia, role i dezaktywacja zostają w zainstalowanym `auth`, które izoluje użytkowników per tenant — moduł dodaje trzy role klubowe z zestawami funkcji ACL i stronę „Status konta”, która woła API `auth`. Moduł posiada encje drużyny, pozycji, zawodnika, celów, planu sezonu i zaleceń. Jedna specyfikacja, trzy fazy (Q1). Fazy 1 i 2 nie zależą od innych specyfikacji. Faza 3 (cel testu i zalecenia) używa definicji i wyników testów z SPEC 2 („Testy i wyniki”, ten sam moduł) i startuje dopiero po jej bramce wyjścia — E06 jest więc dostarczany przed SPEC 2 (fazy 1–2) i po niej (faza 3).
 
 ### Design Decisions and Alternatives
 
 | Decision | Rationale | Alternative considered | Why rejected / deferred |
 |---|---|---|---|
-| Klub = organizacja `directory`, jeden tenant (Q4) | Zakres organizacji jest natywny dla wszystkich tras i komend; jeden tenant upraszcza onboarding operatora | Tenant na klub | Najmocniejsza izolacja, ale onboarding, operacje i raporty pilotażu wymagają pracy operatora na każdym tenancie |
+| Klub = tenant z jedną organizacją `directory` (Q4, 2026-10-28) | Krok 1 wykazał, że przy jednym tenancie `/api/auth/users` dla nie-superadmina nie izoluje organizacji: POST tworzy konto w dowolnej organizacji tenanta, GET listuje użytkowników wszystkich organizacji; `auth` izoluje natywnie tylko tenant | Jeden tenant + własne API kont lub interceptory na `auth` | Własne API dublowałoby kontrakt `auth`; interceptory łatałyby instalowany kontrakt w trzech miejscach. Koszt: operator zakłada tenant per klub, raporty przekrojowe pilotażu robi superadmin |
 | Zaproszenia przez `auth` (`POST /api/auth/users` z `sendInviteEmail`, `resend-invite`) | Instalowany kontrakt już waliduje cel organizacji i role (`assertCanAssignUserDestination`, `assertCanAssignRoles`) | Własna encja zaproszenia | Dublowałaby `auth` i tokeny; AGENTS.md: brak ad hoc kryptografii |
 | Role klubowe jako szablony ról z zestawami funkcji ACL w `setup.ts` | Strażnicy sprawdzają funkcje, nie nazwy ról (AGENTS.md) | Sprawdzanie nazwy roli | Zabronione |
 | Kilka ról na osobę (Q7 → A) | Mała akademia: administrator bywa trenerem | Jedna rola | Wymuszałaby drugie konto |
@@ -70,16 +70,16 @@ Nowy moduł aplikacji `athletes` (id z PRD, `src/modules/athletes/`), zbudowany 
 
 | Term / invariant | Precise meaning or rule | Source of truth | Failure behavior |
 |---|---|---|---|
-| Klub | Organizacja w `directory`; wszystkie rekordy modułu mają `organization_id` klubu | `directory` | Brak organizacji w kontekście → 403, nic nie zwrócone (D33) |
+| Klub | Tenant z jedną organizacją `directory`; wszystkie rekordy modułu mają `tenant_id` i `organization_id` klubu | `directory` | Brak organizacji w kontekście → 403, nic nie zwrócone (D33) |
 | Drużyna | Grupa zawodników jednego klubu; w MVP najwyżej jedna aktywna drużyna w klubie (D206) | `athletes_team` | Próba utworzenia drugiej aktywnej → 409 z komunikatem „po MVP” |
 | Pozycja | Słownik pozycji klubu ustawiany przez administratora (D344) | `athletes_position` | Usunięcie pozycji używanej przez zawodnika → 409 |
 | Zawodnik | Osoba małoletnia w jednej drużynie; `joined_at` ogranicza daty testów (D162) | `athletes_player` | `joined_at` w przyszłości → 400 |
 | Rola klubowa | Szablon roli `auth` z zestawem funkcji `athletes.*`: administrator klubu, trener, dyrektor | `auth` + `setup.ts` | Brak funkcji → 403 |
-| Konto oczekujące | Użytkownik `auth` utworzony z `sendInviteEmail`, który nie ustawił hasła | `auth` | Ponowne wysłanie przez `resend-invite`, limit 3 / 5 min |
-| Konto nieaktywne | Użytkownik `auth` z `isActive = false`; sesje i dostęp tracone natychmiast (R26) | `auth` | Logowanie odrzucone |
+| Konto oczekujące | Użytkownik `auth` utworzony z `sendInviteEmail`, który nie ustawił hasła (brak `passwordHash`; lista `auth` tego nie zwraca → `GET /api/athletes/accounts/invite-status`) | `auth` | Ponowne wysłanie przez `resend-invite`, limit 3 / 5 min |
+| Konto nieaktywne | Użytkownik `auth` z `isConfirmed = false`; sesje i dostęp tracone natychmiast (R26) | `auth` | Logowanie odrzucone |
 | Cel drużyny / zawodnika | Tekst z terminem, autorem i stanem `open`/`achieved`; odhacza trener (D226) | `athletes_goal` | Brak drużyny/zawodnika z tego klubu → 404 |
 | Cel testu | Wartość liczbowa w jednostce testu, termin, autor, powód (D223); jeden aktywny cel na test i drużynę lub zawodnika | `athletes_goal` (`kind = test`) | Druga aktywna → 409 |
-| Plan sezonu | Jeden na drużynę: cel sezonu + data, lista kluczowych wydarzeń (data od, data do opcjonalnie, nazwa), typowy tydzień jako tekst (D336) | `athletes_season_plan`, `athletes_season_event` | Data wydarzenia spoza sezonu jest dozwolona, bez blokady |
+| Plan sezonu | Jeden na drużynę: początek sezonu, cel sezonu + data, lista kluczowych wydarzeń (data od, data do opcjonalnie, nazwa, flaga „planowane zmęczenie”), typowy tydzień jako tekst (D336) | `athletes_season_plan`, `athletes_season_event` | Data wydarzenia spoza sezonu jest dozwolona, bez blokady |
 | Zalecenie | Rekomendacja trenera dla zawodnika, powiązana z 1+ testami; tekst trenera tylko dla trenera (D265) | `athletes_recommendation` | Brak testów → 400 |
 | Stan testu w zaleceniu | Wyliczany z wyników SPEC 2 po dacie zalecenia: „czeka”, „wykonany <data>”, „termin minął” — nie przechowywany | SPEC 2 wyniki | Brak wyników → „czeka” |
 | Ocena zalecenia | Trzy części (D246) + wybór: oceniona / „Jeszcze nie można ocenić” (zostaje otwarte, D270) | `athletes_recommendation` | — |
@@ -88,7 +88,7 @@ Nowy moduł aplikacji `athletes` (id z PRD, `src/modules/athletes/`), zbudowany 
 
 | Actor | Allowed outcomes | Scope rule | Required feature IDs |
 |---|---|---|---|
-| Operator (administrator systemu) | Zakłada organizację klubu i pierwszego administratora klubu; trwale czyści dane klubu | system (instalowany kontrakt `directory`/`auth`, superadmin) | instalowane `directory.*`, `auth.users.*` |
+| Operator (administrator systemu) | Zakłada tenant klubu z organizacją i pierwszego administratora klubu (rola `club_admin`), potem `yarn mercato auth sync-role-acls`; trwale czyści dane klubu | system (instalowany kontrakt `directory`/`auth`, superadmin) | instalowane `directory.*`, `auth.users.*` |
 | Administrator klubu | Drużyna, pozycje, zawodnicy; zaproszenia, „Status konta”, dezaktywacja; usunięcie danych klubu | własna organizacja | `athletes.club.manage`, `athletes.players.view`, `athletes.players.manage`, `auth.users.list`, `auth.users.create`, `auth.users.edit` |
 | Trener | Podgląd drużyny i zawodników; cele, plan sezonu, zalecenia i ich ocena | własna organizacja | `athletes.players.view`, `athletes.goals.manage`, `athletes.plan.manage`, `athletes.recommendations.manage` |
 | Dyrektor | Podgląd drużyny, celów, planu, zaleceń bez tekstu trenera | własna organizacja | `athletes.players.view`, `athletes.goals.view`, `athletes.plan.view`, `athletes.recommendations.view` |
@@ -111,10 +111,10 @@ Nowy moduł aplikacji `athletes` (id z PRD, `src/modules/athletes/`), zbudowany 
 ## Architecture and Data Flow
 
 ```text
-Administrator klubu -> /backend/athletes/club, /players -> athletes commands -> athletes_team / _position / _player
-                    -> /backend/athletes/club/accounts -> POST /api/auth/users (sendInviteEmail, organizationId = kontekst)
-                                                       -> PUT /api/auth/users (isActive=false)
-Trener -> /backend/athletes/goals, /season-plan, /recommendations -> athletes commands -> athletes_goal / _season_plan / _recommendation
+Administrator klubu -> /backend/club, /players -> athletes commands -> athletes_team / _position / _player
+                    -> /backend/accounts -> POST /api/auth/users (sendInviteEmail, organizationId = kontekst)
+                                                       -> PUT /api/auth/users (isConfirmed=false)
+Trener -> /backend/goals, /season-plan, /recommendations -> athletes commands -> athletes_goal / _season_plan / _recommendation
                                                                  -> athletes.*.created|updated|deleted (po commicie)
 Dyrektor -> te same strony w trybie podglądu -> GET (bez coach_text)
 E04 (później) -> czyta cele i plan przez API/serwis modułu
@@ -130,13 +130,13 @@ E04 (później) -> czyta cele i plan przez API/serwis modułu
 ### Journey J-001 — Uruchomienie klubu
 
 1. Operator zakłada organizację klubu w `directory` i zaprasza pierwszego administratora klubu (zainstalowane strony).
-2. Administrator ustawia hasło z zaproszenia, wchodzi na „Profil klubu” (`/backend/athletes/club`), zakłada drużynę i pozycje.
-3. Administrator dodaje zawodników (`/backend/athletes/players/create`) — imię, nazwisko, data urodzenia, pozycja, data dołączenia.
+2. Administrator ustawia hasło z zaproszenia, wchodzi na „Profil klubu” (`/backend/club`), zakłada drużynę i pozycje.
+3. Administrator dodaje zawodników (`/backend/players/create`) — imię, nazwisko, data urodzenia, pozycja, data dołączenia.
 4. Błąd: druga aktywna drużyna → komunikat „Kolejne drużyny po MVP” (409); konflikt edycji → komunikat i ponowne wczytanie (409).
 
 ### Journey J-002 — Zaproszenie i dezaktywacja
 
-1. Administrator otwiera „Status konta” (`/backend/athletes/club/accounts`), klika „Zaproś”, podaje e-mail, imię i rolę klubową.
+1. Administrator otwiera „Status konta” (`/backend/accounts`), klika „Zaproś”, podaje e-mail, imię i rolę klubową.
 2. System tworzy użytkownika w `auth` w organizacji administratora z `sendInviteEmail`; lista pokazuje „Zaproszenie oczekuje”.
 3. Zaproszony ustawia hasło; status zmienia się na „Aktywne”. Administrator może ponowić zaproszenie (limit) albo dezaktywować konto — dostęp znika natychmiast.
 4. Błąd: e-mail już istnieje w innym klubie → komunikat bez ujawniania, który to klub; próba nadania roli spoza trzech ról klubowych → 403.
@@ -161,13 +161,13 @@ Referencje: `.ai/guides/backend-ui.md`, `node_modules/@open-mercato/core/src/mod
 
 | Surface / route | Purpose and primary actions | Data source / mutations | Closest installed reference | Canonical shell / components | Required states | Requirement IDs |
 |---|---|---|---|---|---|---|
-| `/backend/athletes/club` | „Profil klubu”: nazwa klubu, drużyna, pozycje; utwórz/edytuj drużynę | `GET/POST/PUT /api/athletes/teams`, `/api/athletes/positions` | `example/backend/todos/page.tsx` | `Page`, `PageBody`, `CrudForm`, `DataTable` | loading, empty („Załóż drużynę”), error, conflict, permission denied | REQ-001, REQ-004 |
-| `/backend/athletes/players` (+ `/create`, `/[id]/edit`) | Lista i edycja zawodników | `/api/athletes/players` | `example/components/TodosTable.tsx`, `TodoForm.tsx` | `DataTable`, `CrudForm` | j.w. + walidacja dat | REQ-001, REQ-004, REQ-005 |
-| `/backend/athletes/club/accounts` | „Status konta”: konta klubu, statusy, „Zaproś”, „Wyślij ponownie”, „Dezaktywuj” | `GET/POST/PUT /api/auth/users`, `POST /api/auth/users/resend-invite` | `auth/backend/users` | `DataTable`, dialog `CrudForm`, potwierdzenie destrukcyjne | j.w. + limit ponowień | REQ-002, REQ-003 |
-| `/backend/athletes/club/delete` | Zgrubne usunięcie danych klubu z potwierdzeniem (wpisanie nazwy klubu) | `POST /api/athletes/club/delete-request` | potwierdzenia destrukcyjne w `auth/backend/users/[id]` | `Page`, dialog potwierdzenia | error, success, permission denied | REQ-003 |
-| `/backend/athletes/goals` | „Cele”: cele drużyny, zawodników i testów; odhaczanie | `/api/athletes/goals` | `example/components/TodosTable.tsx` | `DataTable`, `CrudForm` | j.w.; tryb podglądu dla dyrektora | REQ-006, REQ-007 |
-| `/backend/athletes/season-plan` | „Plan sezonu”: cel sezonu, wydarzenia, typowy tydzień | `/api/athletes/season-plans`, `/api/athletes/season-events` | `example/backend/todos/[id]/edit/page.tsx` | `CrudForm`, `DataTable` (wydarzenia) | j.w. | REQ-008 |
-| `/backend/athletes/recommendations` (+ `/create`, `/[id]`) | Zalecenia, testy ze stanem, ocena | `/api/athletes/recommendations` | `example/components/TodosTable.tsx`, `TodoForm.tsx` | `DataTable`, `CrudForm` | j.w.; dyrektor bez tekstu trenera | REQ-009, REQ-010 |
+| `/backend/club` | „Profil klubu”: nazwa klubu, drużyna, pozycje; utwórz/edytuj drużynę | `GET/POST/PUT /api/athletes/teams`, `/api/athletes/positions` | `example/backend/todos/page.tsx` | `Page`, `PageBody`, `CrudForm`, `DataTable` | loading, empty („Załóż drużynę”), error, conflict, permission denied | REQ-001, REQ-004 |
+| `/backend/players` (+ `/create`, `/[id]/edit`) | Lista i edycja zawodników | `/api/athletes/players` | `example/components/TodosTable.tsx`, `TodoForm.tsx` | `DataTable`, `CrudForm` | j.w. + walidacja dat | REQ-001, REQ-004, REQ-005 |
+| `/backend/accounts` | „Status konta”: konta klubu, statusy, „Zaproś”, „Wyślij ponownie”, „Dezaktywuj” | `GET/POST/PUT /api/auth/users`, `POST /api/auth/users/resend-invite` | `auth/backend/users` | `DataTable`, dialog `CrudForm`, potwierdzenie destrukcyjne | j.w. + limit ponowień | REQ-002, REQ-003 |
+| `/backend/accounts/delete-club` | Zgrubne usunięcie danych klubu z potwierdzeniem (wpisanie nazwy klubu) | `POST /api/athletes/club/delete-request` | potwierdzenia destrukcyjne w `auth/backend/users/[id]` | `Page`, dialog potwierdzenia | error, success, permission denied | REQ-003 |
+| `/backend/goals` | „Cele”: cele drużyny, zawodników i testów; odhaczanie | `/api/athletes/goals` | `example/components/TodosTable.tsx` | `DataTable`, `CrudForm` | j.w.; tryb podglądu dla dyrektora | REQ-006, REQ-007 |
+| `/backend/season-plan` | „Plan sezonu”: cel sezonu, wydarzenia, typowy tydzień | `/api/athletes/season-plans`, `/api/athletes/season-events` | `example/backend/todos/[id]/edit/page.tsx` | `CrudForm`, `DataTable` (wydarzenia) | j.w. | REQ-008 |
+| `/backend/recommendations` (+ `/create`, `/[id]`) | Zalecenia, testy ze stanem, ocena | `/api/athletes/recommendations` | `example/components/TodosTable.tsx`, `TodoForm.tsx` | `DataTable`, `CrudForm` | j.w.; dyrektor bez tekstu trenera | REQ-009, REQ-010 |
 
 Odwołania do rekordów (drużyna, pozycja, zawodnik, test, rola klubowa) to kontrolki wyboru zasilane trasami opcji modułu (`/api/athletes/options/{teams|positions|players|tests}`), wzór `example/api/tags/route.ts`; role klubowe — stała lista trzech ról.
 
@@ -185,7 +185,7 @@ Odwołania do rekordów (drużyna, pozycja, zawodnik, test, rola klubowa) to kon
 | Status konta | „Nikt jeszcze nie został zaproszony” + „Zaproś” | j.w. | potwierdzenie dezaktywacji z fokusem na „Anuluj” |
 | Cele / Plan / Zalecenia | lokalizowane wyjaśnienie + akcja główna | telefon 390 px: lista jednokolumnowa, cele dotyku 44 px (NFR-007) | Enter zapisuje, Esc anuluje, komunikaty przez region live |
 
-### `/backend/athletes/club/accounts` — Status konta
+### `/backend/accounts` — Status konta
 
 ```text
 ┌────────────────────────────────────────────────────────────┐
@@ -205,7 +205,7 @@ Odwołania do rekordów (drużyna, pozycja, zawodnik, test, rola klubowa) to kon
 - **Localization:** `athletes.accounts.*`.
 - **Design-system and theming:** tokeny semantyczne statusu z systemu projektowego; jasny i ciemny motyw.
 
-### `/backend/athletes/recommendations/[id]` — Zalecenie
+### `/backend/recommendations/[id]` — Zalecenie
 
 ```text
 ┌────────────────────────────────────────────────────────────┐
@@ -213,7 +213,7 @@ Odwołania do rekordów (drużyna, pozycja, zawodnik, test, rola klubowa) to kon
 ├────────────────────────────────────────────────────────────┤
 │ Testy: CMJ — wykonany 12.11 · Sprint 10 m — czeka          │
 │ Tekst trenera (widzi tylko trener)                         │
-│ Ocena realizacji i efektu zalecenia: część 1 · 2 · 3       │
+│ Ocena realizacji i efektu: Realizacja · Efekt · Wnioski     │
 │ ( ) Oceniona  ( ) Jeszcze nie można ocenić                 │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -222,7 +222,7 @@ Odwołania do rekordów (drużyna, pozycja, zawodnik, test, rola klubowa) to kon
 
 Każda strona: `om-backend-ui-design` przy implementacji, brak surowych tabel/formularzy/`fetch`, brak twardych kolorów statusu.
 
-„Ukryj nazwiska” (REQ-005): przełącznik w menu profilu, stan zapisany per użytkownik w pamięci przeglądarki (klucz z id użytkownika, z obsługą wyjątków); wspólny komponent wyświetlania nazwiska modułu zamienia nazwiska na inicjały lub „Zawodnik 12”. To ustawienie wyłącznie prezentacyjne — nie jest zabezpieczeniem i nie zmienia odpowiedzi API.
+„Ukryj nazwiska” (REQ-005): przełącznik na stronach „Zawodnicy” i „Status konta” (menu profilu jest powierzchnią instalowanego modułu — wstrzyknięcie przez UMES odłożone), stan zapisany per użytkownik w pamięci przeglądarki (klucz z id użytkownika, z obsługą wyjątków); wspólny komponent wyświetlania nazwiska modułu zamienia nazwiska na inicjały lub „Zawodnik 12”. To ustawienie wyłącznie prezentacyjne — nie jest zabezpieczeniem i nie zmienia odpowiedzi API.
 
 ## Data Models
 
@@ -273,9 +273,9 @@ Wszystkie encje w `src/modules/athletes/data/entities.ts`: UUID `id`, `tenant_id
 | Field | Type / nullability | Scope / index | Sensitive / encrypted | Lifecycle and validation |
 |---|---|---|---|---|
 | plan: `team_id` | UUID, required | unikalne (org, team) | no | jeden plan na drużynę |
-| plan: `season_goal`, `season_goal_date` | text, date | — | no | tekst ≤ 2000 |
+| plan: `season_starts_on`, `season_goal`, `season_goal_date` | date null, text, date | — | no | tekst ≤ 2000; `season_starts_on` używa E02 (licznik „Zrealizowane”) |
 | plan: `typical_week` | text, nullable | — | no | ≤ 4000, zwykły tekst |
-| event: `plan_id`, `starts_on`, `ends_on`, `label` | UUID, date, date null, text | indeks (org, plan) | no | `ends_on ≥ starts_on`; reprezentacja okresu zmęczenia — Q-003 |
+| event: `plan_id`, `starts_on`, `ends_on`, `label`, `is_planned_fatigue` | UUID, date, date null, text, bool | indeks (org, plan) | no | `ends_on ≥ starts_on`; `is_planned_fatigue` czyta AI (D288, Q-003) |
 
 ### `athletes_recommendation` i `athletes_recommendation_test`
 
@@ -284,7 +284,7 @@ Wszystkie encje w `src/modules/athletes/data/entities.ts`: UUID `id`, `tenant_id
 | `player_id` | UUID, required | indeks (org, player) | no | — |
 | `issued_on` | date, required | — | no | — |
 | `coach_text` | text, nullable | — | **tak** (notatka o małoletnim, tylko trener) | ≤ 4000; pomijany w odpowiedziach bez `.manage` |
-| `review_part_1..3` | text, nullable | — | tak | treść części — Q-002 |
+| `review_realization`, `review_effect`, `review_conclusions` | text, nullable | — | tak | trzy pola tekstowe oceny (D246, Q-002); etykiety „Realizacja”, „Efekt”, „Wnioski” |
 | `review_choice` | enum `none`/`reviewed`/`not_yet`, required | — | no | `not_yet` zostawia zalecenie otwarte (D270) |
 | `author_user_id`, `author_name` | UUID + migawka | — | no | z kontekstu |
 | link: `recommendation_id`, `test_definition_id` | UUID | unikalne para | no | ≥ 1 test na zalecenie |
@@ -335,8 +335,9 @@ Wszystkie trasy modułu przez `makeCrudRoute` z per-metodową `metadata` i ekspo
 | `GET/POST/PUT/DELETE` | `/api/athletes/positions` | j.w. | `{ name, sortOrder }` | `athletes.position.*` | 409 (używana) | REQ-001 |
 | `GET/POST/PUT/DELETE` | `/api/athletes/players` | `athletes.players.view` / `athletes.players.manage` | `{ teamId, firstName, lastName, birthDate, positionId?, joinedAt, isActive }` | `athletes.player.*` (bez nazwisk w ładunku) | 400 (daty), 403, 409 | REQ-001, REQ-004 |
 | `GET` | `/api/athletes/options/{teams,positions,players}` (faza 1); `/options/tests` dostarcza SPEC 2, używa faza 3 | `athletes.players.view` | `q`, `limit` | `{ items: [{ id, label }] }` | 403 | REQ-001 |
-| reuse | `POST /api/auth/users` | `auth.users.create` | `{ email, name, organizationId: (z kontekstu, dopisywane po stronie klienta z sesji), roles: [rola klubowa], sendInviteEmail: true }` | 201 `{ id }` | 400, 403 (cel/rola — instalowani strażnicy), 409 | REQ-002, REQ-004 |
-| reuse | `PUT /api/auth/users` | `auth.users.edit` | `{ id, isActive }` | `{ ok }` | 403, 409 | REQ-003 |
+| reuse | `POST /api/auth/users` | `auth.users.create` | `{ email, name, organizationId: (organizacja klubu z sesji), roles: [rola klubowa], sendInviteEmail: true }` | 201 `{ id }` | 400, 403 (tenant/rola — instalowani strażnicy: rola z funkcjami spoza uprawnień wołającego jest odrzucana), 409 | REQ-002, REQ-004 |
+| reuse | `PUT /api/auth/users` | `auth.users.edit` | `{ id, isConfirmed }` | `{ ok }` | 403, 409, 400 (ostatni aktywny `club_admin` — instalowany strażnik `minActiveHolders = 1` zwraca 400 z przetłumaczonym komunikatem) | REQ-003 |
+| `GET` | `/api/athletes/accounts/invite-status?ids=` | `auth.users.list` | `ids` (≤ 100) | `{ items: [{ id, pending }] }` — tylko użytkownicy tenanta i organizacji wołającego | 400, 403 | REQ-002 |
 | reuse | `POST /api/auth/users/resend-invite` | j.w. | `{ id }` | `{ ok }` | 429 (3 / 5 min) | REQ-002 |
 | `POST` | `/api/athletes/club/delete-request` | `athletes.club.manage` | `{ confirmationName }` | 202; komenda `athletes.club.soft_delete` — miękkie usunięcie rekordów modułu + dezaktywacja kont klubu poza wykonującym | 400 (nazwa się nie zgadza), 403 | REQ-003 |
 | `GET/POST/PUT/DELETE` | `/api/athletes/goals` | `athletes.goals.view` / `.manage` | `{ kind, teamId, playerId?, testDefinitionId?, title?, targetValue?, unit?, deadline, reason?, status }` | `athletes.goal.*` | 400, 403, 409 | REQ-006, REQ-007 |
@@ -368,7 +369,7 @@ Brak zadań w tle i powiadomień w tej specyfikacji.
 |---|---|---|---|---|---|
 | TEST-001 | integration | klub A, administrator | API: drużyna, pozycje, zawodnik | zapis, zaszyfrowane kolumny w bazie, zdarzenia po commicie | REQ-001 |
 | TEST-002 | security | kluby A i B | administrator/trener A czyta i zmienia rekordy B; wołanie bez organizacji | 404/403, brak danych B w odpowiedziach | REQ-004 |
-| TEST-003 | integration | administrator A | zaproszenie trenera, ponowienie, dezaktywacja | użytkownik w organizacji A z rolą, `isActive=false` blokuje sesję | REQ-002, REQ-003 |
+| TEST-003 | integration | administrator A | zaproszenie trenera, ponowienie, dezaktywacja | użytkownik w organizacji A z rolą, `isConfirmed=false` blokuje sesję | REQ-002, REQ-003 |
 | TEST-004 | security | administrator A | zaproszenie do organizacji B / z rolą operatora | 403 | REQ-002, REQ-004 |
 | TEST-005 | integration | klub z danymi | żądanie usunięcia ze złą i dobrą nazwą | 400; potem rekordy miękko usunięte, konta dezaktywowane | REQ-003 |
 | TEST-006 | UI | zawodnicy | „Ukryj nazwiska” na listach i formularzach | brak nazwisk w DOM widoku | REQ-005 |
@@ -396,6 +397,7 @@ Brak zadań w tle i powiadomień w tej specyfikacji.
 
 Kroki:
 1. Weryfikacja `auth` przez `om-framework-context`: czy `POST /api/auth/users` odrzuca cudzą organizację i rolę dla administratora klubu; jakie pole oznacza zaproszenie oczekujące; czy `isActive=false` unieważnia sesje; czy snapshoty undo i wpisy `audit_logs` dla zaszyfrowanych pól zawodnika zostają zaszyfrowane (jeśli nie — komendy zapisują w snapshotach tylko id i pola niewrażliwe). Wynik zapisany w tej specyfikacji; brakujące gwarancje → interceptor/enricher (Architecture).
+   **Wynik (2026-10-28):** przy jednym tenancie POST/GET `/api/auth/users` nie izolują organizacji dla nie-superadmina → klub = tenant (Q4). W tenancie klubu: rola z funkcjami spoza uprawnień wołającego (`admin`, `superadmin`) jest odrzucana przez `assertActorCanGrantRoles`; `isConfirmed=false` usuwa sesje i każde żądanie sprawdza konto; ochrona ostatniego administratora = `minActiveHolders = 1` na roli `club_admin` (instalowane `enforceProtectedRoleFloor`); oczekujące zaproszenie = brak `passwordHash` (trasa `invite-status`); ponowienie: 3 / 5 min per IP, 409 gdy hasło ustawione; snapshoty undo w `audit_logs` szyfrowane w spoczynku przy włączonym szyfrowaniu tenanta.
 2. Moduł `athletes` (`index.ts`, `acl.ts`, `setup.ts` z trzema szablonami ról), aktywacja w `src/modules.ts`, `yarn generate`.
 3. Encje `athletes_team`, `athletes_position`, `athletes_player` + mapa szyfrowania + walidatory + migracja (do przeglądu).
 4. Komendy z undo i trasy `makeCrudRoute` + `openApi` + trasy opcji.
@@ -408,7 +410,7 @@ Kroki:
 - **Depends on:** Phase 1 exit gate
 - **Outcome:** trener zapisuje cele drużyny i zawodnika oraz plan sezonu z wydarzeniami; dyrektor je widzi.
 - **Why this order / value delivered:** E04 (obserwacje AI) czyta plan i cele (D288) — muszą istnieć przed SPEC 5; nie zależy od SPEC 2.
-- **Deliverables:** `athletes_goal` (`kind` `team`/`player`), `athletes_season_plan`, `athletes_season_event` (bez oznaczenia okresu zmęczenia — dochodzi po Q-003 osobnym krokiem), komendy, trasy, strony „Cele” i „Plan sezonu”.
+- **Deliverables:** `athletes_goal` (`kind` `team`/`player`), `athletes_season_plan` (z `season_starts_on`), `athletes_season_event` (z flagą `is_planned_fatigue`), komendy, trasy, strony „Cele” i „Plan sezonu”.
 - **Independent slices / estimated commits:** cele i plan równolegle; ~3 commity.
 - **Requirements closed:** REQ-006, REQ-008
 - **Tests:** TEST-007, TEST-009, TEST-011
@@ -417,7 +419,7 @@ Kroki:
 
 ### Phase 3 — Cel testu i zalecenia (E06-S01 #20 część testowa, E06-S02 #21)
 
-- **Depends on:** Phase 2 exit gate, **bramka wyjścia SPEC 2** (definicje i wyniki testów, `/api/athletes/options/tests`), Q-002
+- **Depends on:** Phase 2 exit gate, **bramka fazy 1 specyfikacji `2026-10-28-e02-testy-i-wyniki.md`** (definicje i wyniki testów, `/api/athletes/options/tests`, `athletesTestResultsService`). Kolejność dostawy: E06 faza 1 → E02 faza 1 → E06 faza 3.
 - **Outcome:** trener ustawia cel na teście, daje i ocenia zalecenia; dyrektor widzi stan zalecenia bez tekstu trenera.
 - **Why this order / value delivered:** cel testu i stan testu w zaleceniu wymagają definicji i wyników z SPEC 2; zamyka pętlę uczenia się.
 - **Deliverables:** migracja dodająca `kind = test`, `test_definition_id`, `target_value`, `unit` i indeks do `athletes_goal`; `athletes_recommendation`, `athletes_recommendation_test`; wyliczanie stanu testu z wyników SPEC 2; strony „Zalecenia” i szczegół; pomijanie tekstów dla `.view`.
@@ -427,11 +429,24 @@ Kroki:
 - **Validation:** jak w fazie 1
 - **Exit gate:** cel testu pokazuje jednostkę z definicji testu; J-004 przechodzi; TEST-010 potwierdza brak tekstu trenera w odpowiedzi i DOM dyrektora.
 
+## Implementation Status
+
+| Phase | State | Evidence |
+|---|---|---|
+| 1 | implemented, pending verification in app | branch `feat/e06-phase-1-club`: moduł `athletes` (encje, komendy z undo, trasy CRUD/opcje/`invite-status`/`club/delete-request`, role klubowe, strony `/backend/club`, `/backend/players`, `/backend/accounts`, `/backend/accounts/delete-club`); testy jednostkowe 10/10; test API `.ai/qa/tests/athletes/TC-ATH-001` napisany, nieuruchomiony (brak środowiska); migracja wygenerowana, niezastosowana |
+
+Próba weryfikacji fazy 1 (2026-10-31): `yarn test:integration:ephemeral --filter athletes` zbudował środowisko i uruchomił aplikację, ale runner nie uznał jej za gotową — sonda gotowości w `@open-mercato/cli` wymaga `GET /api/customers/people` (200), a moduł `customers` nie jest włączony (404). Sonda nie jest konfigurowalna. Faza 1 pozostaje niezweryfikowana; odblokowanie wymaga decyzji: włączyć `customers` na potrzeby testów, zmienić narzędzie upstream albo zaakceptować inną ścieżkę weryfikacji (AGENTS.md: „Never migrate to validate”).
+
+| 2 | pending | — |
+| 3 | blocked | bramka fazy 1 E02 |
+
+Odchylenia fazy 1: strona „Profil klubu” nie pokazuje nazwy klubu (nazwa widoczna na stronie usuwania danych); stan „Zaproszenie oczekuje” i filtry „Status konta” liczone po stronie klienta (klub ma kilka kont).
+
 ## Requirement Traceability
 
 | Requirement | Journey / surface | Data/API/event contracts | Phase | Tests | Acceptance criterion |
 |---|---|---|---|---|---|
-| REQ-001 | J-001, `/backend/athletes/club`, `/players` | `athletes_team`, `_position`, `_player`; `/api/athletes/teams|positions|players` | 1 | TEST-001 | AC-001 |
+| REQ-001 | J-001, `/backend/club`, `/players` | `athletes_team`, `_position`, `_player`; `/api/athletes/teams|positions|players` | 1 | TEST-001 | AC-001 |
 | REQ-002 | J-002, `/club/accounts` | `POST /api/auth/users`, `resend-invite` | 1 | TEST-003, TEST-004 | AC-002 |
 | REQ-003 | J-002, `/club/accounts`, `/club/delete` | `PUT /api/auth/users`, `athletes.club.soft_delete` | 1 | TEST-003, TEST-005 | AC-003 |
 | REQ-004 | wszystkie | filtry zakresu, strażnicy `auth` | 1 | TEST-002, TEST-004 | AC-004 |
@@ -469,7 +484,7 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`, adaptowane z jednego plik
 
 - Migracje generowane po każdej fazie (`yarn db:generate`), przeglądane, stosowane dopiero po zgodzie; tylko nowe tabele — wycofanie przez wyłączenie modułu w `src/modules.ts` i odwrotną migrację przed pierwszymi prawdziwymi danymi.
 - Onboarding klubu: operator tworzy organizację i pierwszego administratora; `setup.ts` tworzy szablony ról idempotentnie.
-- Usunięcie klubu: miękkie usunięcie i dezaktywacja są odwracalne przez operatora (przywrócenie `deleted_at`, `isActive`). Trwałe czyszczenie danych klubu jest poza tą specyfikacją — osobne zadanie operatorskie po przeglądzie prawnym (pytanie 3 do Toma, D352).
+- Usunięcie klubu: miękkie usunięcie i dezaktywacja są odwracalne przez operatora (przywrócenie `deleted_at`, `isConfirmed`). Trwałe czyszczenie danych klubu jest poza tą specyfikacją — osobne zadanie operatorskie po przeglądzie prawnym (pytanie 3 do Toma, D352).
 - Brak flag funkcji; faza 3 startuje dopiero po bramce wyjścia SPEC 2.
 
 ## Risks and Tradeoffs
@@ -484,7 +499,6 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`, adaptowane z jednego plik
 | Konto z wieloma rolami (Q7) | Trener-administrator widzi „Status konta” | Funkcje ACL sumują się zgodnie z oczekiwaniem | Akceptowane |
 | Snapshoty undo / dziennik audytu z jawnymi nazwiskami małoletnich | Wyciek danych osobowych poza mapę szyfrowania | Weryfikacja w kroku 1; snapshoty bez pól wrażliwych | Niski po weryfikacji |
 | E-mail z zaproszeniem nie dochodzi | Konto zostaje „Zaproszenie oczekuje” | Status widoczny w „Status konta”, „Wyślij ponownie”; dostarczanie po stronie `auth` | Niski |
-| Treść trzech części oceny nieznana (Q-002) | Faza 3 może wymagać zmiany pól | Pola tekstowe, nazwy z i18n | Niski |
 
 ## Acceptance Criteria
 
@@ -512,21 +526,21 @@ Powierzchnie rozszerzeń (wszystkie `emitted-example`, adaptowane z jednego plik
 | UI contracts identify references, canonical components, and theme/state coverage | pass | UI and Interaction Contracts |
 | Every phase has dependencies, bounded slices, tests, value, and an observable exit gate | pass | Implementation Phases |
 
-Verdict: `Ready for implementation` — fazy 1–2 (faza 1 zaczyna się weryfikacją kontraktu auth, krok 1). Faza 3: `Blocked — Q-002 i bramka wyjścia SPEC 2`.
+Verdict: `Ready for implementation` — fazy 1–2. Faza 3: `Blocked — bramka fazy 1 E02 („Testy i wyniki”)`.
 
 ## Open Questions
 
 | ID | Question | Owner | Blocking? | Resolution / decision date |
 |---|---|---|---|---|
 | Q-001 | Czy klient zatwierdził zakres pierwszej wersji (Q15, D360)? | założyciel klienta / Asia | yes (status Ready) | 2026-10-28: tak — klient zatwierdził zakres pierwszej wersji (potwierdzenie użytkownika) |
-| Q-002 | Jakie są trzy części „Ocena realizacji i efektu zalecenia” (D246)? | Tom | yes dla fazy 3 | pending |
-| Q-003 | Jak oznaczyć w „Plan sezonu” planowany okres zmęczenia, który czyta AI (D288): flaga na wydarzeniu czy tylko tekst? | Tom | no (faza 2 wysyła wydarzenia bez flagi; potrzebne przed SPEC 5) | pending |
-| Q-004 | Strona startowa administratora: „Profil klubu” czy „Pulpit” (pytanie 6 do Toma)? | Tom | no | rekomendacja: „Profil klubu” |
-| Q-005 | Czy pozycje są słownikiem klubu (administrator), czy stałą listą od klienta? | klient | no | rekomendacja: słownik klubu (D344) |
+| ~~Q-002~~ | Trzy części oceny zalecenia (D246) | użytkownik | — | 2026-10-31: trzy pola tekstowe „Realizacja”, „Efekt”, „Wnioski” |
+| ~~Q-003~~ | Oznaczenie okresu zmęczenia w „Plan sezonu” | użytkownik | — | 2026-10-31: flaga „planowane zmęczenie” na wydarzeniu |
+| ~~Q-004~~ | Strona startowa administratora | użytkownik | — | 2026-10-31: „Profil klubu” |
+| ~~Q-005~~ | Źródło pozycji | użytkownik | — | 2026-10-31: słownik klubu prowadzony przez administratora (D344) |
 | ~~Q1~~ | Podział | użytkownik | — | 2026-10-28: jedna specyfikacja, trzy fazy |
 | ~~Q2~~ | Bramka D360 | użytkownik | — | 2026-10-28: piszemy teraz jako Draft |
 | ~~Q3~~ | Zakres fundamentu | użytkownik | — | 2026-10-28: klub, drużyna, zawodnicy, role |
-| ~~Q4~~ | Klub w Open Mercato | użytkownik | — | 2026-10-28: organizacja, jeden tenant |
+| ~~Q4~~ | Klub w Open Mercato | użytkownik | — | 2026-10-28: organizacja, jeden tenant → zmienione 2026-10-28 (decyzja użytkownika po kroku 1): tenant na klub |
 | ~~Q5~~ | Pola zawodnika | użytkownik | — | 2026-10-28: imię, nazwisko, data urodzenia (szyfr.), pozycja, drużyna, data dołączenia |
 | ~~Q6~~ | „Ukryj nazwiska” | użytkownik | — | 2026-10-28: przełącznik widoku użytkownika |
 | ~~Q7~~ | Role | użytkownik | — | 2026-10-28: kilka ról na osobę |
@@ -539,3 +553,5 @@ Verdict: `Ready for implementation` — fazy 1–2 (faza 1 zaczyna się weryfika
 | 2026-10-28 | Odpowiedzi Q1–Q7; pełna specyfikacja, trzy fazy |
 | 2026-10-28 | Recenzja spójności zakresu: cel testu przeniesiony do fazy 3 (po SPEC 2), gotowość per faza, Q-003 nieblokujące dla fazy 2, opcje testów do SPEC 2, AC-005 zawężone, trwałe czyszczenie poza zakresem, REQ-003 uzupełnione |
 | 2026-10-28 | Q-001 rozstrzygnięte (klient zatwierdził zakres); status Ready for implementation dla faz 1–2; faza 3 nadal zablokowana (Q-002, SPEC 2) |
+| 2026-10-31 | Rozstrzygnięte Q-002…Q-005: ocena zalecenia w trzech polach tekstowych; flaga „planowane zmęczenie” na wydarzeniu planu (faza 2); dodane `season_starts_on` dla licznika E02; start administratora „Profil klubu”; pozycje jako słownik klubu. Faza 3 czeka już tylko na bramkę fazy 1 E02 |
+| 2026-10-28 | Krok 1 (weryfikacja `auth`): Q4 zmienione na tenant na klub; dezaktywacja przez `isConfirmed`; trasa `invite-status`; ostatni administrator przez `minActiveHolders` |
