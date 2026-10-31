@@ -502,7 +502,8 @@ export default function FieldMode({ sessionId }: { sessionId: string }) {
     if (!isFieldEntryEmpty(entryRef.current)) resetEntry()
     setFinishing(true)
     try {
-      const payload = { id: data.session.id, ...(data.session.updatedAt ? { updatedAt: data.session.updatedAt } : {}) }
+      // The finish contract is `{ id, updatedAt }`: the version this screen loaded.
+      const payload = { id: data.session.id, updatedAt: data.session.updatedAt ?? '' }
       const call = await runMutation({
         operation: () => apiCall<FinishResponse & ApiErrorBody>('/api/athletes/test-sessions/finish', {
           method: 'POST',

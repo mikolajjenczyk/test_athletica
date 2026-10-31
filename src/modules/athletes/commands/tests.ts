@@ -33,6 +33,7 @@ export const TEST_ERRORS = {
   teamNotInClub: 'athletes.errors.teamNotInClub',
   playerNotInClub: 'athletes.errors.playerNotInClub',
   playerNotInSession: 'athletes.errors.playerNotInSession',
+  playerInactive: 'athletes.errors.playerInactive',
   testedBeforeJoined: 'athletes.errors.testedBeforeJoined',
   sessionNotFound: 'athletes.errors.testSessionNotFound',
   sessionFinished: 'athletes.errors.testSessionFinished',
@@ -433,9 +434,10 @@ const recordTestResultCommand: CommandHandler<Record<string, unknown>, TestResul
     const player = await em.findOne(
       AthletesPlayer,
       scoped<AthletesPlayer>(scope, { id: input.playerId }),
-      { fields: ['id', 'teamId', 'joinedAt', 'tenantId', 'organizationId'] },
+      { fields: ['id', 'teamId', 'joinedAt', 'isActive', 'tenantId', 'organizationId'] },
     )
     if (!player) throw badRequest(TEST_ERRORS.playerNotInClub)
+    if (player.isActive === false) throw badRequest(TEST_ERRORS.playerInactive)
     const belongs = session.kind === 'team' ? player.teamId === session.teamId : player.id === session.playerId
     if (!belongs) throw badRequest(TEST_ERRORS.playerNotInSession)
     const testedOn = toIsoDate(session.testedOn)
@@ -618,8 +620,10 @@ export type TestSessionSummary = {
 }
 
 /**
- * "Zakończ test" summary (REQ-006, D202). Players of the team who were already in the club
- * on the test date but have no result count as empty fields.
+ * "Zakończ test" summary (REQ-006, D202). Every stored result counts in its state. Empty
+ * fields are the roster players — active, in the team and already in the club on the test
+ * date — who have no result at all; results of players outside the roster (moved, inactive,
+ * joined later) never reduce that count, and a "joined later" row is never counted twice.
  */
 export async function summarizeTestSession(
   em: EntityManager,
@@ -639,16 +643,24 @@ export async function summarizeTestSession(
     else if (row.state === 'joined_later') summary.joinedLater += 1
     else summary.empty += 1
   }
+  let rosterIds: string[] = []
   if (session.kind === 'team' && session.teamId) {
-    summary.playersTotal = await em.count(AthletesPlayer, scoped<AthletesPlayer>(scope, {
-      teamId: session.teamId,
-      isActive: true,
-      joinedAt: { $lte: toIsoDate(session.testedOn) },
-    }))
-  } else {
-    summary.playersTotal = 1
+    const roster = await em.find(
+      AthletesPlayer,
+      scoped<AthletesPlayer>(scope, {
+        teamId: session.teamId,
+        isActive: true,
+        joinedAt: { $lte: toIsoDate(session.testedOn) },
+      }),
+      { fields: ['id'] },
+    )
+    rosterIds = roster.map((player) => String(player.id))
+  } else if (session.playerId) {
+    rosterIds = [session.playerId]
   }
-  summary.empty += Math.max(0, summary.playersTotal - results.length)
+  const withResult = new Set(results.map((row) => row.playerId))
+  summary.playersTotal = rosterIds.length
+  summary.empty += rosterIds.filter((id) => !withResult.has(id)).length
   return summary
 }
 
@@ -666,7 +678,7 @@ const finishTestSessionCommand: CommandHandler<Record<string, unknown>, TestSess
       resourceKind: 'athletes.test_session',
       resourceId: input.id,
       current: existing.updatedAt,
-      expected: input.updatedAt ?? null,
+      expected: input.updatedAt,
       request: ctx.request ?? null,
     })
     return { before: serializeSession(existing) }

@@ -102,6 +102,7 @@
   "athletes.errors.clubNameMismatch": "The name you typed does not match the club name.",
   "athletes.errors.duplicatePositionName": "This position already exists in the club.",
   "athletes.errors.duplicateTeamName": "A team with this name already exists.",
+  "athletes.errors.playerInactive": "This player is inactive — their result cannot be recorded.",
   "athletes.errors.playerNotInClub": "The selected player does not belong to this club.",
   "athletes.errors.playerNotInSession": "This player is not part of this test.",
   "athletes.errors.positionInUse": "A position assigned to players cannot be deleted.",

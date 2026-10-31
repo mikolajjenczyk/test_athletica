@@ -89,12 +89,12 @@ export const openApi: OpenApiRouteDoc = {
     POST: {
       summary: 'Finish a test session and return its summary',
       description:
-        'Marks the session finished and returns counts of recorded results, "did not perform", invalid attempts, joined later and empty fields (players without a result count as empty). Repeating the call returns the same summary with `alreadyFinished: true`. Send `updatedAt` (or the optimistic-lock header) to detect a stale session (409).',
+        'Marks the session finished and returns counts of recorded results, "did not perform", invalid attempts, joined later and empty fields (players without a result count as empty). Repeating the call returns the same summary with `alreadyFinished: true`. `updatedAt` (the session version the client saw) is required; a stale one is a 409 `optimistic_lock_conflict`.',
       tags: [athletesTag],
       requestBody: { contentType: 'application/json', schema: testSessionFinishSchema },
       responses: [{ status: 200, description: 'Session finished', schema: responseSchema }],
       errors: [
-        { status: 400, description: 'Invalid payload', schema: athletesErrorSchema },
+        { status: 400, description: 'Invalid payload (for example a missing `updatedAt`)', schema: athletesErrorSchema },
         { status: 403, description: 'Missing feature or club context', schema: athletesErrorSchema },
         { status: 404, description: 'Session not found in the club', schema: athletesErrorSchema },
         { status: 409, description: 'Stale version', schema: athletesErrorSchema },

@@ -86,7 +86,7 @@ test.describe('TC-ATH-007 test summary and result visibility', () => {
         sessionId, playerId: players.Gosia, trials: [{ attemptNo: 1, value: 28 }], idempotencyKey: `qa-foreign-${stamp}`,
       })
       expect(foreignRecord.status).toBe(404)
-      expect((await callB('POST', '/api/athletes/test-sessions/finish', { id: sessionId })).status).toBe(404)
+      expect((await callB('POST', '/api/athletes/test-sessions/finish', { id: sessionId, updatedAt: started.body!.updatedAt })).status).toBe(404)
       const foreignStart = await callB('POST', '/api/athletes/test-sessions', { testDefinitionId: jump.id, teamId, testedOn: '2025-05-05' })
       expect(foreignStart.status).toBe(400)
       const foreignSessions = await callB('GET', `/api/athletes/test-sessions?id=${sessionId}`)
@@ -97,7 +97,7 @@ test.describe('TC-ATH-007 test summary and result visibility', () => {
       expect(finished.status).toBe(200)
       expect(finished.body).toMatchObject({ status: 'finished', alreadyFinished: false })
       expect(finished.body!.summary).toEqual({ recorded: 1, notPerformed: 1, empty: 1, invalidAttempt: 1, joinedLater: 0, playersTotal: 4 })
-      const finishedAgain = await callA('POST', '/api/athletes/test-sessions/finish', { id: sessionId })
+      const finishedAgain = await callA('POST', '/api/athletes/test-sessions/finish', { id: sessionId, updatedAt: finished.body!.updatedAt })
       expect(finishedAgain.status).toBe(200)
       expect(finishedAgain.body!.alreadyFinished).toBe(true)
       expect((await record(players.Gosia, { trials: [{ attemptNo: 1, value: 29 }] }, 'gosia-late')).status).toBe(409)

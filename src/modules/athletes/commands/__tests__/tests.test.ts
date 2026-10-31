@@ -8,7 +8,7 @@ import {
   AthletesTestSession,
   AthletesTestTrial,
 } from '../../data/entities'
-import { testResultRecordSchema, testSessionStartSchema } from '../../data/validators'
+import { testResultRecordSchema, testSessionFinishSchema, testSessionStartSchema } from '../../data/validators'
 import { TEST_ERRORS, testCommands } from '../tests'
 
 jest.mock('../../events', () => ({ emitAthletesEvent: jest.fn(async () => undefined) }))
@@ -193,6 +193,16 @@ describe('athletes.test_results.record', () => {
       .rejects.toMatchObject({ status: 400, body: { error: TEST_ERRORS.testedBeforeJoined } })
   })
 
+  it('rejects an inactive player (400)', async () => {
+    const rows = recordRows([[AthletesPlayer, { ...player, isActive: false }]])
+    const { ctx, em } = makeCtx(rows, {
+      findOne: jest.fn<AnyFn>(async (entity: unknown) => (entity === AthletesTestResult ? null : rows.get(entity) ?? null)),
+    })
+    await expect(testCommands.recordTestResultCommand.execute({ ...base, trials: [{ attemptNo: 1, value: 40 }] }, ctx))
+      .rejects.toMatchObject({ status: 400, body: { error: TEST_ERRORS.playerInactive } })
+    expect(em.transactional).not.toHaveBeenCalled()
+  })
+
   it('rejects a finished session (409)', async () => {
     const rows = recordRows([[AthletesTestSession, { ...openSession, status: 'finished' }]])
     const { ctx } = makeCtx(rows, {
@@ -356,16 +366,55 @@ describe('athletes.test_results.record undo', () => {
 })
 
 describe('athletes.test_sessions.finish', () => {
+  const at = '2026-10-28T09:00:00.000Z'
+  const roster = ['p-1', 'p-2', 'p-3', 'p-4', 'p-5', 'p-6'].map((id) => ({ id }))
+
   it('finishes an open session and summarizes results, "Nie wykonał" and empty fields', async () => {
     const session = { ...openSession }
     const rows: Rows = new Map<unknown, unknown>([
       [AthletesTestSession, session],
-      ['list:AthletesTestResult', [{ state: 'recorded' }, { state: 'recorded' }, { state: 'not_performed' }, { state: 'empty' }]],
+      ['list:AthletesTestResult', [
+        { playerId: 'p-1', state: 'recorded' }, { playerId: 'p-2', state: 'recorded' },
+        { playerId: 'p-3', state: 'not_performed' }, { playerId: 'p-4', state: 'empty' },
+      ]],
+      ['list:AthletesPlayer', roster],
     ])
-    const { ctx, em } = makeCtx(rows, { count: jest.fn<AnyFn>(async () => 6) })
-    const out = await testCommands.finishTestSessionCommand.execute({ id: SESSION }, ctx)
+    const { ctx, em } = makeCtx(rows)
+    const out = await testCommands.finishTestSessionCommand.execute({ id: SESSION, updatedAt: at }, ctx)
     expect(session.status).toBe('finished')
     expect(em.flush).toHaveBeenCalled()
     expect(out.summary).toEqual({ recorded: 2, notPerformed: 1, empty: 3, invalidAttempt: 0, joinedLater: 0, playersTotal: 6 })
+    const rosterQuery = em.find.mock.calls.find((call) => call[0] === AthletesPlayer)?.[1]
+    expect(rosterQuery).toMatchObject({ teamId: TEAM, isActive: true, joinedAt: { $lte: '2026-10-28' }, tenantId: TENANT, organizationId: CLUB_A })
+  })
+
+  it('counts empty fields only for roster players: outside results and "joined later" never offset them', async () => {
+    const rows: Rows = new Map<unknown, unknown>([
+      [AthletesTestSession, { ...openSession, status: 'finished' }],
+      ['list:AthletesTestResult', [
+        { playerId: 'p-1', state: 'recorded' },
+        { playerId: 'moved-away', state: 'recorded' },
+        { playerId: 'newcomer', state: 'joined_later' },
+      ]],
+      ['list:AthletesPlayer', roster.slice(0, 3)],
+    ])
+    const { ctx } = makeCtx(rows)
+    const out = await testCommands.finishTestSessionCommand.execute({ id: SESSION, updatedAt: at }, ctx)
+    expect(out.summary).toEqual({ recorded: 2, notPerformed: 0, empty: 2, invalidAttempt: 0, joinedLater: 1, playersTotal: 3 })
+  })
+
+  it('requires the session version: the contract is { id, updatedAt }', () => {
+    expect(testSessionFinishSchema.safeParse({ id: SESSION }).success).toBe(false)
+    expect(testSessionFinishSchema.safeParse({ id: SESSION, updatedAt: '' }).success).toBe(false)
+    expect(testSessionFinishSchema.safeParse({ id: SESSION, updatedAt: at }).success).toBe(true)
+  })
+
+  it('rejects finishing a session that changed since it was loaded (409)', async () => {
+    const rows: Rows = new Map<unknown, unknown>([
+      [AthletesTestSession, { ...openSession, updatedAt: new Date('2026-10-28T09:30:00.000Z') }],
+    ])
+    const { ctx } = makeCtx(rows)
+    await expect(testCommands.finishTestSessionCommand.prepare!({ id: SESSION, updatedAt: at }, ctx))
+      .rejects.toMatchObject({ status: 409, body: { code: 'optimistic_lock_conflict' } })
   })
 })

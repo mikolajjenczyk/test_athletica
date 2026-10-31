@@ -127,7 +127,8 @@ export const testResultRecordSchema = z
 
 export const testSessionFinishSchema = z.object({
   id: z.string().uuid(),
-  updatedAt: z.string().optional(),
+  /** The session version the client saw: finishing a session that changed since is a 409. */
+  updatedAt: z.string().trim().min(1),
 })
 
 export type TestSessionStartInput = z.infer<typeof testSessionStartSchema>

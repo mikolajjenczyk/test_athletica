@@ -22,6 +22,8 @@ type RecordedResult = {
   state: string
   checkFlag: boolean
   noPreviousMeasurement: boolean
+  updatedAt: string | null
+  correctedAt: string | null
 }
 
 function isoDate(date: Date): string {
@@ -109,6 +111,31 @@ test.describe('TC-ATH-006 test sessions and results', () => {
       expect(annaResults.status).toBe(200)
       expect(annaResults.body!.items as RecordedResult[]).toHaveLength(1)
 
+      // Correcting Anna needs the version of her result: none or a stale one is a 409.
+      const correctedTrials = [{ attemptNo: 1, value: 2.1 }, { attemptNo: 2, value: 2.05 }]
+      const noVersion = await call('POST', '/api/athletes/test-results/record', {
+        sessionId, playerId: anna, trials: correctedTrials, idempotencyKey: `qa-sprint-anna-fix-${stamp}`,
+      })
+      expect(noVersion.status).toBe(409)
+      const staleVersion = await call('POST', '/api/athletes/test-results/record', {
+        sessionId, playerId: anna, trials: correctedTrials, idempotencyKey: `qa-sprint-anna-fix-${stamp}`,
+        expectedUpdatedAt: '2000-01-01T00:00:00.000Z',
+      })
+      expect(staleVersion.status).toBe(409)
+      expect(staleVersion.body?.code).toBe('optimistic_lock_conflict')
+      const corrected = await call('POST', '/api/athletes/test-results/record', {
+        sessionId, playerId: anna, trials: correctedTrials, idempotencyKey: `qa-sprint-anna-fix-${stamp}`,
+        expectedUpdatedAt: firstResult.updatedAt,
+      })
+      expect(corrected.status).toBe(201)
+      expect(corrected.body!.result).toMatchObject({ id: firstResult.id, value: 2.05, state: 'recorded' })
+      expect((corrected.body!.result as RecordedResult).correctedAt).toBeTruthy()
+      // A late retry of the original save replays the current (corrected) result.
+      const lateRetry = await call('POST', '/api/athletes/test-results/record', { sessionId, playerId: anna, trials: sprintTrials, idempotencyKey: key })
+      expect(lateRetry.status).toBe(200)
+      expect(lateRetry.body!.replayed).toBe(true)
+      expect((lateRetry.body!.result as RecordedResult).id).toBe(firstResult.id)
+
       // A gap is a state, never 0; a player who joined after the test date needs "joined later".
       const zero = await call('POST', '/api/athletes/test-results/record', {
         sessionId, playerId: beata, trials: [{ attemptNo: 1, value: 0 }], idempotencyKey: `qa-zero-${stamp}`,
@@ -124,7 +151,8 @@ test.describe('TC-ATH-006 test sessions and results', () => {
       expect(joinedLater.status).toBe(201)
       expect(joinedLater.body!.result).toMatchObject({ state: 'joined_later', value: null })
 
-      expect((await call('POST', '/api/athletes/test-sessions/finish', { id: sessionId })).status).toBe(200)
+      expect((await call('POST', '/api/athletes/test-sessions/finish', { id: sessionId })).status).toBe(400)
+      expect((await call('POST', '/api/athletes/test-sessions/finish', { id: sessionId, updatedAt: started.body!.updatedAt })).status).toBe(200)
 
       // Next sprint session: more than 10% slower than 2.05 s is flagged "check", not blocked.
       const second = await call('POST', '/api/athletes/test-sessions', { testDefinitionId: sprint.id, teamId, testedOn: '2025-04-01' })

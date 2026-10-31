@@ -102,6 +102,7 @@
   "athletes.errors.clubNameMismatch": "Wpisana nazwa nie zgadza się z nazwą klubu.",
   "athletes.errors.duplicatePositionName": "Taka pozycja już istnieje w klubie.",
   "athletes.errors.duplicateTeamName": "Drużyna o tej nazwie już istnieje.",
+  "athletes.errors.playerInactive": "Ten zawodnik jest nieaktywny — nie można zapisać jego wyniku.",
   "athletes.errors.playerNotInClub": "Wybrany zawodnik nie należy do tego klubu.",
   "athletes.errors.playerNotInSession": "Ten zawodnik nie bierze udziału w tym teście.",
   "athletes.errors.positionInUse": "Nie można usunąć pozycji przypisanej zawodnikom.",

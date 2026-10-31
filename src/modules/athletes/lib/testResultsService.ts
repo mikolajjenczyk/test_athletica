@@ -56,21 +56,44 @@ function scoped<E>(scope: ClubScope, where: Record<string, unknown>): FilterQuer
   return { ...where, tenantId: scope.tenantId, organizationId: scope.organizationId, deletedAt: null } as FilterQuery<E>
 }
 
-function isoDate(value: unknown): string {
-  if (value instanceof Date) return value.toISOString().slice(0, 10)
-  return String(value ?? '').slice(0, 10)
-}
+type PreviousRow = { result_id: string; previous_value: string | number | null }
 
-function createdMs(row: AthletesTestResult): number {
-  return row.createdAt instanceof Date ? row.createdAt.getTime() : 0
-}
-
-/** Earlier = older test date; on the same date, the earlier created row. */
-function isEarlier(candidate: AthletesTestResult, current: AthletesTestResult): boolean {
-  const a = isoDate(candidate.testedOn)
-  const b = isoDate(current.testedOn)
-  if (a !== b) return a < b
-  return createdMs(candidate) < createdMs(current)
+/**
+ * The previous recorded result of each given result: same player and test, an older test date
+ * (or the same date and created earlier), never the row itself. One bounded read — at most
+ * one history row per result on the page, found through `athletes_test_results_history_idx`
+ * — instead of loading the players' whole history.
+ */
+async function loadPreviousValues(
+  em: EntityManager,
+  scope: ClubScope,
+  resultIds: string[],
+): Promise<Map<string, string | number | null>> {
+  const placeholders = resultIds.map(() => '?').join(', ')
+  const rows = await em.getConnection().execute<PreviousRow[]>(
+    `select p.id as result_id, prev.value as previous_value
+       from athletes_test_results p
+       join lateral (
+         select h.value
+           from athletes_test_results h
+          where h.tenant_id = p.tenant_id
+            and h.organization_id = p.organization_id
+            and h.player_id = p.player_id
+            and h.test_definition_id = p.test_definition_id
+            and h.state = 'recorded'
+            and h.deleted_at is null
+            and h.id <> p.id
+            and h.tested_on <= p.tested_on
+            and (h.tested_on < p.tested_on or h.created_at < p.created_at)
+          order by h.tested_on desc, h.created_at desc
+          limit 1
+       ) prev on true
+      where p.tenant_id = ?
+        and p.organization_id = ?
+        and p.id in (${placeholders})`,
+    [scope.tenantId, scope.organizationId, ...resultIds],
+  )
+  return new Map(rows.map((row) => [String(row.result_id), row.previous_value]))
 }
 
 /** Adds `checkFlag` and `noPreviousMeasurement` to a set of results with two batched reads. */
@@ -82,32 +105,16 @@ export async function decorateResults(
 ): Promise<TestResultWithFlags[]> {
   if (rows.length === 0) return []
   const playerIds = Array.from(new Set(rows.map((row) => row.playerId)))
-  const definitionIds = Array.from(new Set(rows.map((row) => row.testDefinitionId)))
   const sessionIds = Array.from(new Set(rows.map((row) => row.sessionId)))
 
-  const [history, trials] = await Promise.all([
-    em.find(
-      AthletesTestResult,
-      scoped<AthletesTestResult>(scope, {
-        playerId: { $in: playerIds },
-        testDefinitionId: { $in: definitionIds },
-        state: 'recorded',
-      }),
-      { orderBy: { testedOn: 'asc', createdAt: 'asc' } },
-    ),
+  const [previousById, trials] = await Promise.all([
+    loadPreviousValues(em, scope, rows.map((row) => String(row.id))),
     em.find(
       AthletesTestTrial,
       scoped<AthletesTestTrial>(scope, { sessionId: { $in: sessionIds }, playerId: { $in: playerIds } }),
     ),
   ])
 
-  const historyByKey = new Map<string, AthletesTestResult[]>()
-  for (const row of history) {
-    const key = `${row.playerId}|${row.testDefinitionId}`
-    const list = historyByKey.get(key) ?? []
-    list.push(row)
-    historyByKey.set(key, list)
-  }
   const trialsByKey = new Map<string, TrialLike[]>()
   for (const trial of trials) {
     const key = `${trial.sessionId}|${trial.playerId}`
@@ -117,16 +124,14 @@ export async function decorateResults(
   }
 
   return rows.map((row) => {
-    const earlier = (historyByKey.get(`${row.playerId}|${row.testDefinitionId}`) ?? [])
-      .filter((candidate) => candidate.id !== row.id && isEarlier(candidate, row))
-    const previous = earlier.length > 0 ? earlier[earlier.length - 1] : null
+    const hasPrevious = previousById.has(String(row.id))
     const view = toTestResultView(row, { includeReason: !!options.includeReason })
     return {
       ...view,
-      noPreviousMeasurement: previous === null,
+      noPreviousMeasurement: !hasPrevious,
       checkFlag: computeCheckFlag({
         value: row.state === 'recorded' ? view.value : null,
-        previousValue: previous ? toNumberOrNull(previous.value) : null,
+        previousValue: hasPrevious ? toNumberOrNull(previousById.get(String(row.id)) ?? null) : null,
         trials: trialsByKey.get(`${row.sessionId}|${row.playerId}`) ?? [],
       }),
     }
