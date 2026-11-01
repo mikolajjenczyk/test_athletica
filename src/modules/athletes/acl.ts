@@ -12,6 +12,13 @@ export const features = [
     module: 'athletes',
     dependsOn: ['athletes.players.view'],
   },
+  { id: 'athletes.tests.view', title: 'View tests and results', module: 'athletes' },
+  {
+    id: 'athletes.tests.record',
+    title: 'Run tests and record results (sees reasons)',
+    module: 'athletes',
+    dependsOn: ['athletes.tests.view'],
+  },
 ]
 
 export default features

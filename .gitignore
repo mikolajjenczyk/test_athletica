@@ -16,6 +16,8 @@ node_modules/
 # testing
 coverage/
 test-results/
+# Module API routes named test-results are source code, not Playwright output.
+!src/modules/*/api/test-results/
 playwright-report/
 
 # next.js
