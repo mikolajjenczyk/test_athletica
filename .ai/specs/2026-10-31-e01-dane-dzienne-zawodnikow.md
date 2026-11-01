@@ -469,6 +469,18 @@ Verdict: `Ready for implementation` po bramce fazy 1 E06 (faza 1); fazy 2–3 po
 | ~~Q4~~ | Nieznane nazwiska | użytkownik | — | 2026-10-31: przypisanie w podsumowaniu importu do niedopasowanego zawodnika, każdy zawodnik raz w imporcie; bez zapamiętywania |
 | ~~Q5~~ | Kolumny tekstowe | użytkownik | — | 2026-10-31: żadnych uwag |
 
+## Implementation Status
+
+Source doc: .ai/specs/2026-10-31-e01-dane-dzienne-zawodnikow.md
+
+| Phase | State | Dependencies | Acceptance IDs | Focused validation | Exit gate |
+|---|---|---|---|---|---|
+| Phase 1 — Wgrywanie pliku RPE | **verified** (2026-11-01, PR #30) | E06 faza 1 `verified` | AC-001…AC-004, AC-007, AC-011, AC-013 (część), AC-014 | `yarn test:integration:ephemeral --filter athletes` | J-001 na dwóch klubach, 1280 px i 390 px |
+| Phase 2 — Wgrywanie ankiet samopoczucia | pending | Phase 1 | AC-005, AC-006, AC-008 | j.w. | J-002 |
+| Phase 3 — Pulpit v1 | pending | Phase 2 | AC-009, AC-010, AC-012 | j.w. | J-003 |
+
+Faza 1 zweryfikowana 2026-11-01 (PR #30): `yarn test:integration:ephemeral --filter athletes --no-reuse-env` — 18/18 (TC-ATH-009…013 pokrywają TEST-001…004, 006 RPE, 010, 011, 013); jednostkowe 177/177; generate, typecheck, lint, ds:check, test, build — zielone; przegląd kodu po poprawkach: approve. Odstępstwa: trasy `/backend/daily…` (konwencja modułu); błędy przypisań zwracają 400 (jak tabela API); podgląd z przypisaniami przelicza serwer; historia importów ma dodatkowo `team_id` i `undo_state` (tylko identyfikatory i liczby); CSV spoza UTF-8 czytany jako Windows-1250; zdarzenie nie niesie tenantId/organizationId w treści (zakres w opcjach emisji). Uwagi niezatrzymujące z przeglądu (m3 limit pamięci exceljs, m4 brak redo komendy z dziennika, n1 zapytania `canUndo`) — do follow-up.
+
 ## Changelog
 
 | Date | Change |
@@ -477,3 +489,4 @@ Verdict: `Ready for implementation` po bramce fazy 1 E06 (faza 1); fazy 2–3 po
 | 2026-10-31 | Odpowiedzi Q1–Q5; pełna specyfikacja, trzy fazy |
 | 2026-10-31 | Recenzja spójności zakresu: E01 faza 1 właścicielem podglądu importu (zamiast E02 fazy 2), przypisanie nazwisk jako osobny panel; REQ-011 (dostęp, TEST-011) w fazie 1; REQ-012 pomiar A11; REQ-013 kontrakty dla SPEC 4/5/7; REQ-014 historia i undo; Q-002 nieblokujące; strona Pulpitu należy do `athletes`, SPEC 7 ją rozszerza |
 | 2026-10-31 | Rozstrzygnięte Q-001…Q-005: bez przeglądu prawnego (zgody po stronie klubu); przyciski wgrania zamiast „Odśwież”; RPE 0–10; nagłówki z prototypu + synonimy; progi z prototypu. Status: Ready for implementation po bramce fazy 1 E06 |
+| 2026-11-01 | Faza 1 zaimplementowana i zweryfikowana (PR #30). |

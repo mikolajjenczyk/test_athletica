@@ -330,3 +330,145 @@ export class AthletesTestResult {
   @Property({ name: 'deleted_at', type: Date, nullable: true })
   deletedAt?: Date | null
 }
+
+export type DailyImportKind = 'rpe' | 'wellbeing'
+
+/**
+ * One player's training session (spec E01, REQ-003/REQ-004): unique per (club, player,
+ * `session_date`, `session_no`) among live rows — a partial unique index in the migration.
+ * `rpe` null is "Brak RPE", never 0 (R12); load = RPE × minutes is computed at read time.
+ * `previous_*` / `corrected_at` keep the last correction; `import_id` is the last import
+ * that changed the row.
+ */
+@Entity({ tableName: 'athletes_training_sessions' })
+@Index({ name: 'athletes_training_sessions_player_idx', properties: ['tenantId', 'organizationId', 'playerId', 'sessionDate'] })
+@Index({ name: 'athletes_training_sessions_date_idx', properties: ['tenantId', 'organizationId', 'sessionDate'] })
+@Index({ name: 'athletes_training_sessions_import_idx', properties: ['tenantId', 'organizationId', 'importId'] })
+export class AthletesTrainingSession {
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
+  id!: string
+
+  @Property({ name: 'player_id', type: 'uuid' })
+  playerId!: string
+
+  @Property({ name: 'session_date', type: 'date' })
+  sessionDate!: string
+
+  @Property({ name: 'session_no', type: 'integer' })
+  sessionNo!: number
+
+  @Property({ type: 'text', nullable: true })
+  kind?: string | null
+
+  @Property({ type: 'integer', nullable: true })
+  minutes?: number | null
+
+  @Property({ type: 'integer', nullable: true })
+  rpe?: number | null
+
+  @Property({ name: 'previous_minutes', type: 'integer', nullable: true })
+  previousMinutes?: number | null
+
+  @Property({ name: 'previous_rpe', type: 'integer', nullable: true })
+  previousRpe?: number | null
+
+  @Property({ name: 'corrected_at', type: Date, nullable: true })
+  correctedAt?: Date | null
+
+  @Property({ name: 'import_id', type: 'uuid' })
+  importId!: string
+
+  @Property({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string
+
+  @Property({ name: 'organization_id', type: 'uuid' })
+  organizationId!: string
+
+  @Property({ name: 'created_at', type: Date, onCreate: () => new Date() })
+  createdAt: Date = new Date()
+
+  @Property({ name: 'updated_at', type: Date, onUpdate: () => new Date() })
+  updatedAt: Date = new Date()
+
+  @Property({ name: 'deleted_at', type: Date, nullable: true })
+  deletedAt?: Date | null
+}
+
+/**
+ * One committed daily-data file (spec E01, REQ-014): who, when, which file (name and hash —
+ * the file itself is never stored), period and counters. `rejected_rows` holds
+ * `{ line, reason }` only — never names or values. `team_id` is the imported team (the
+ * `athletes.daily_import.committed` payload carries it). `undo_state` is the internal
+ * per-row restore list the undo command needs (ids and numbers only); `undone_at` marks an
+ * import that was undone.
+ */
+@Entity({ tableName: 'athletes_daily_imports' })
+@Index({ name: 'athletes_daily_imports_kind_idx', properties: ['tenantId', 'organizationId', 'kind', 'createdAt'] })
+@Index({ name: 'athletes_daily_imports_hash_idx', properties: ['tenantId', 'organizationId', 'fileHash'] })
+export class AthletesDailyImport {
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
+  id!: string
+
+  @Property({ type: 'text' })
+  kind!: DailyImportKind
+
+  @Property({ name: 'team_id', type: 'uuid' })
+  teamId!: string
+
+  @Property({ name: 'file_name', type: 'text' })
+  fileName!: string
+
+  @Property({ name: 'file_hash', type: 'text' })
+  fileHash!: string
+
+  @Property({ name: 'period_from', type: 'date' })
+  periodFrom!: string
+
+  @Property({ name: 'period_to', type: 'date' })
+  periodTo!: string
+
+  @Property({ type: 'integer', default: 0 })
+  saved: number = 0
+
+  @Property({ type: 'integer', default: 0 })
+  corrected: number = 0
+
+  @Property({ type: 'integer', default: 0 })
+  unchanged: number = 0
+
+  @Property({ type: 'integer', default: 0 })
+  rejected: number = 0
+
+  @Property({ name: 'assigned_names', type: 'integer', default: 0 })
+  assignedNames: number = 0
+
+  @Property({ name: 'rejected_rows', type: 'json' })
+  rejectedRows: Array<{ line: number; reason: string }> = []
+
+  @Property({ name: 'undo_state', type: 'json', nullable: true })
+  undoState?: unknown
+
+  @Property({ name: 'imported_by_user_id', type: 'uuid', nullable: true })
+  importedByUserId?: string | null
+
+  @Property({ name: 'undone_at', type: Date, nullable: true })
+  undoneAt?: Date | null
+
+  @Property({ name: 'undone_by_user_id', type: 'uuid', nullable: true })
+  undoneByUserId?: string | null
+
+  @Property({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string
+
+  @Property({ name: 'organization_id', type: 'uuid' })
+  organizationId!: string
+
+  @Property({ name: 'created_at', type: Date, onCreate: () => new Date() })
+  createdAt: Date = new Date()
+
+  @Property({ name: 'updated_at', type: Date, onUpdate: () => new Date() })
+  updatedAt: Date = new Date()
+
+  @Property({ name: 'deleted_at', type: Date, nullable: true })
+  deletedAt?: Date | null
+}

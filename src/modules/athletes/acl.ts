@@ -19,6 +19,14 @@ export const features = [
     module: 'athletes',
     dependsOn: ['athletes.tests.view'],
   },
+  // E01: daily data (RPE). Coach and club admin only — the director has none (REQ-011).
+  { id: 'athletes.daily.view', title: 'View daily data (training sessions, RPE, imports)', module: 'athletes' },
+  {
+    id: 'athletes.daily.import',
+    title: 'Import daily-data files and undo the last import',
+    module: 'athletes',
+    dependsOn: ['athletes.daily.view'],
+  },
 ]
 
 export default features

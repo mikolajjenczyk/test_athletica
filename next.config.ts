@@ -91,6 +91,8 @@ const nextConfig: NextConfig & { agentRules?: boolean } = {
     '@open-mercato/cli',
     'puppeteer-core',
     'jszip',
+    // Daily-data spreadsheet parser (athletes): a CommonJS Node library with its own zip stack.
+    'exceljs',
     'yjs',
     // Telemetry: the OTEL SDK + instrumentations must run as real Node modules,
     // not be bundled — the auto-instrumentations (pg/undici) monkey-patch the

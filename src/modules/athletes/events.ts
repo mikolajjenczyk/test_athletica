@@ -18,6 +18,10 @@ const events = [
   { id: 'athletes.test_session.started', label: 'Test Session Started', entity: 'test_session', category: 'lifecycle' },
   { id: 'athletes.test_session.finished', label: 'Test Session Finished', entity: 'test_session', category: 'lifecycle' },
   { id: 'athletes.test_result.recorded', label: 'Test Result Recorded', entity: 'test_result', category: 'lifecycle' },
+  // E01 (REQ-013, frozen): `{ importId, kind, teamId, periodFrom, periodTo, saved, corrected,
+  // unchanged, rejected }` — no names, no values; scope travels in the trusted emit options.
+  { id: 'athletes.daily_import.committed', label: 'Daily Data Import Committed', entity: 'daily_import', category: 'lifecycle' },
+  { id: 'athletes.daily_import.undone', label: 'Daily Data Import Undone', entity: 'daily_import', category: 'lifecycle' },
 ] as const
 
 export const eventsConfig = createModuleEvents({

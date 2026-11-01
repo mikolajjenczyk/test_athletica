@@ -27,7 +27,13 @@ describe('athletes setup', () => {
 
   it('grants coaches and directors read access to players, and keeps operator wildcards out of club roles', () => {
     const features = setup.defaultRoleFeatures ?? {}
-    expect(features.coach).toEqual(['athletes.players.view', 'athletes.tests.view', 'athletes.tests.record'])
+    expect(features.coach).toEqual([
+      'athletes.players.view',
+      'athletes.tests.view',
+      'athletes.tests.record',
+      'athletes.daily.view',
+      'athletes.daily.import',
+    ])
     expect(features.director).toEqual(['athletes.players.view', 'athletes.tests.view'])
     for (const role of ['coach', 'director'] as const) {
       expect(features[role]).not.toContain('athletes.players.manage')
@@ -44,6 +50,13 @@ describe('athletes setup', () => {
     expect(CLUB_ROLE_NAMES.filter((role) => (features[role] ?? []).includes('athletes.tests.record'))).toEqual(['club_admin', 'coach'])
     expect(features.admin).toEqual(['athletes.*'])
     expect(features.superadmin).toEqual(['athletes.*'])
+  })
+
+  it('gives daily data (import and view) to the coach and club admin only, never the director (REQ-011)', () => {
+    const features = setup.defaultRoleFeatures ?? {}
+    for (const feature of ['athletes.daily.view', 'athletes.daily.import']) {
+      expect(CLUB_ROLE_NAMES.filter((role) => (features[role] ?? []).includes(feature))).toEqual(['club_admin', 'coach'])
+    }
   })
 
   it('makes the club admin a superset of every role it can assign (installed grant check)', () => {
