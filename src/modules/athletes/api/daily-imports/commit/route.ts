@@ -54,10 +54,15 @@ export async function POST(request: Request) {
       },
     })
     if (!guard.ok) return guard.response
+    // A guard may rewrite the metadata it saw (never the rows); the result is validated again.
+    const input = guard.modifiedPayload
+      ? dailyImportCommitSchema.safeParse({ ...parsed.data, ...guard.modifiedPayload, table: parsed.data.table, assignments: parsed.data.assignments })
+      : parsed
+    if (!input.success) return Response.json({ error: 'Invalid payload' }, { status: 400 })
 
     const commandBus = container.resolve('commandBus') as CommandBus
     const { result } = await commandBus.execute<Record<string, unknown>, DailyImportCommitResult>('athletes.daily_import.commit', {
-      input: parsed.data,
+      input: input.data,
       ctx: commandContext,
     })
     await guard.runAfterSuccess()
