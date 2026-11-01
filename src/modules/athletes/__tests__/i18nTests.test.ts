@@ -90,10 +90,18 @@ const DAILY_SOURCES = [
   'components/DailyImportPage.tsx',
   'lib/dailyImportUi.ts',
   'backend/daily/import/page.meta.ts',
+  'components/DailyDataPage.tsx',
+  'backend/daily/page.meta.ts',
 ]
 
 /** Feature and table IDs of the daily screens that look like keys but are never translated. */
-const DAILY_NOT_I18N = new Set(['athletes.daily.import', 'athletes.daily.view', 'athletes.daily.import.preview'])
+const DAILY_NOT_I18N = new Set([
+  'athletes.daily.import',
+  'athletes.daily.view',
+  'athletes.daily.import.preview',
+  'athletes.daily.sessions',
+  'athletes.daily.imports',
+])
 
 describe('athletes i18n — E01 daily-data screens', () => {
   const plDict = pl as Record<string, string>
