@@ -54,4 +54,4 @@ Trener wgrywa plik RPE (`.xlsx` lub `.csv`) ze swojego komputera, widzi przed za
 - [x] 1.6 Trasy API i OpenAPI — 6802d43
 - [x] 1.7 Komponent podglądu, przypisanie nazwisk i strona importu — 51cb18c
 - [x] 1.8 Strona „Dane dzienne” i tłumaczenia — 3f1ec71
-- [ ] 1.9 Testy jednostkowe i integracyjne
+- [x] 1.9 Testy jednostkowe i integracyjne — d295635 (fixy: 8759e2d, ae1a8f4)
