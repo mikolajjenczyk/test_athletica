@@ -42,6 +42,8 @@ Trener wgrywa plik RPE (`.xlsx` lub `.csv`) ze swojego komputera, widzi przed za
 
 ## Progress
 
+PR: #30
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Wgrywanie pliku RPE
@@ -54,4 +56,4 @@ Trener wgrywa plik RPE (`.xlsx` lub `.csv`) ze swojego komputera, widzi przed za
 - [x] 1.6 Trasy API i OpenAPI — 6802d43
 - [x] 1.7 Komponent podglądu, przypisanie nazwisk i strona importu — 51cb18c
 - [x] 1.8 Strona „Dane dzienne” i tłumaczenia — 3f1ec71
-- [x] 1.9 Testy jednostkowe i integracyjne — d295635 (fixy: 8759e2d, ae1a8f4)
+- [x] 1.9 Testy jednostkowe i integracyjne — d295635 (fixy: 8759e2d, ae1a8f4); przegląd: 7f23d21, c4b803a, 0d82621
