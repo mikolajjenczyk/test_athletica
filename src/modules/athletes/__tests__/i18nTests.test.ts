@@ -80,3 +80,41 @@ describe('athletes i18n — E02 test screens (step 1.10)', () => {
     }
   })
 })
+
+/** Source files of the E01 daily-data screens whose literal i18n keys must exist in both locales. */
+const DAILY_SOURCES = [
+  'components/DailyShared.tsx',
+  'components/ImportPreview.tsx',
+  'components/NameAssignmentPanel.tsx',
+  'components/RpeImportDetails.tsx',
+  'components/DailyImportPage.tsx',
+  'lib/dailyImportUi.ts',
+  'backend/daily/import/page.meta.ts',
+]
+
+/** Feature and table IDs of the daily screens that look like keys but are never translated. */
+const DAILY_NOT_I18N = new Set(['athletes.daily.import', 'athletes.daily.view', 'athletes.daily.import.preview'])
+
+describe('athletes i18n — E01 daily-data screens', () => {
+  const plDict = pl as Record<string, string>
+  const enDict = en as Record<string, string>
+
+  it('translates every key the daily screens use, in both locales', () => {
+    const keys = new Set<string>()
+    for (const file of DAILY_SOURCES) {
+      const source = readFileSync(join(MODULE_DIR, file), 'utf8')
+      for (const match of source.matchAll(/['"`](athletes\.[A-Za-z0-9_.]+[A-Za-z0-9_])['"`]/g)) keys.add(match[1])
+    }
+    const translatable = [...keys].filter((key) => !DAILY_NOT_I18N.has(key) && !key.endsWith('.'))
+    const missing = translatable.filter((key) => !plDict[key] || !enDict[key])
+    expect(missing).toEqual([])
+    expect(translatable.length).toBeGreaterThan(50)
+  })
+
+  it('keeps the placeholders of each daily string identical across locales', () => {
+    const placeholders = (value: string) => [...value.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort()
+    for (const key of Object.keys(plDict).filter((item) => item.startsWith('athletes.daily'))) {
+      expect([key, placeholders(enDict[key] ?? '')]).toEqual([key, placeholders(plDict[key])])
+    }
+  })
+})
