@@ -49,6 +49,12 @@ type SessionBefore = {
   previousRpe: number | null
   correctedAt: string | null
   importId: string
+  /**
+   * The row's `updated_at` before the import. Undo restores it with the values, so the import
+   * that wrote that version can be undone next (its freshness check compares `updated_at`).
+   * Absent in restore lists written before this field existed.
+   */
+  updatedAt?: string | null
 }
 
 /**
@@ -167,6 +173,7 @@ const commitDailyImportCommand: CommandHandler<Record<string, unknown>, DailyImp
             previousRpe: row.previousRpe ?? null,
             correctedAt: toIso(row.correctedAt),
             importId: row.importId,
+            updatedAt: toIso(row.updatedAt),
           }
           row.previousMinutes = row.minutes ?? null
           row.previousRpe = row.rpe ?? null
@@ -323,7 +330,8 @@ export async function undoDailyImport(
       row.previousRpe = entry.before.previousRpe
       row.correctedAt = entry.before.correctedAt ? new Date(entry.before.correctedAt) : null
       row.importId = entry.before.importId
-      row.updatedAt = now
+      // Back to the version the earlier import left, so that import stays undoable.
+      row.updatedAt = entry.before.updatedAt ? new Date(entry.before.updatedAt) : now
     }
     locked.undoneAt = now
     locked.undoneByUserId = userId

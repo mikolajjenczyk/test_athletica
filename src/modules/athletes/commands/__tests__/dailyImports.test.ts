@@ -223,8 +223,26 @@ describe('daily import undo', () => {
     const record = await undoDailyImport(em as never, { tenantId: TENANT, organizationId: CLUB }, IMPORT_B, ACTOR)
     expect(rows[0].deletedAt).toBeInstanceOf(Date)
     expect(rows[1]).toMatchObject({ kind: 'trening', minutes: 60, rpe: 5, previousMinutes: null, previousRpe: null, correctedAt: null, importId: IMPORT_A })
+    // A restore list without the earlier version (written before it was kept) falls back to now.
+    expect((rows[1].updatedAt as Date).getTime()).toBeGreaterThan(written.getTime())
     expect(record.undoneAt).toBeInstanceOf(Date)
     expect(record.undoneByUserId).toBe(ACTOR)
+  })
+
+  it('restores the version the earlier import wrote, so that import can be undone next', async () => {
+    const earlierWrittenAt = '2026-10-30T10:00:00.000Z'
+    const rows = sessions()
+    const chained: DailyImportUndoEntry[] = [
+      undoState[0],
+      { ...(undoState[1] as Extract<DailyImportUndoEntry, { op: 'update' }>), before: { ...(undoState[1] as Extract<DailyImportUndoEntry, { op: 'update' }>).before, updatedAt: earlierWrittenAt } },
+    ]
+    const earlier = { ...baseImport, id: IMPORT_A, createdAt: earlierWrittenAt, undoState: [{ id: 's-fix', op: 'insert', writtenAt: earlierWrittenAt }] as DailyImportUndoEntry[] }
+    const { em } = makeCtx({ sessions: rows, imports: [{ ...baseImport, undoState: chained }, earlier] })
+    await undoDailyImport(em as never, { tenantId: TENANT, organizationId: CLUB }, IMPORT_B, ACTOR)
+    expect((rows[1].updatedAt as Date).toISOString()).toBe(earlierWrittenAt)
+    expect(isUndoFresh(earlier.undoState, new Map(rows.map((row) => [row.id, row as never])), IMPORT_A)).toBe(true)
+    await undoDailyImport(em as never, { tenantId: TENANT, organizationId: CLUB }, IMPORT_A, ACTOR)
+    expect(rows[1].deletedAt).toBeInstanceOf(Date)
   })
 
   it('refuses an import that is not the latest one (409)', async () => {
