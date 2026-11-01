@@ -23,7 +23,14 @@ export async function ensureClubRoles(em: EntityManager, tenantId: string): Prom
   await em.nativeUpdate(Role, { name: 'club_admin', tenantId, minActiveHolders: 0 }, { minActiveHolders: 1 })
 }
 
-const COACH_FEATURES = ['athletes.players.view', 'athletes.tests.view', 'athletes.tests.record']
+const COACH_FEATURES = [
+  'athletes.players.view',
+  'athletes.tests.view',
+  'athletes.tests.record',
+  // E01: daily data — never the director (REQ-011).
+  'athletes.daily.view',
+  'athletes.daily.import',
+]
 const DIRECTOR_FEATURES = ['athletes.players.view', 'athletes.tests.view']
 
 export const setup: ModuleSetupConfig = {
