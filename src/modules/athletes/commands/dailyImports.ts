@@ -253,8 +253,9 @@ const commitDailyImportCommand: CommandHandler<Record<string, unknown>, DailyImp
       tenantId: result.record.tenantId,
       organizationId: result.record.organizationId,
       snapshotAfter: { ...snapshot, ...buildCommittedPayload(result.record) },
-      // The raw input carries the file's rows and names: keep them out of `action_logs`.
-      redoInput: { kind: result.record.kind, teamId: result.record.teamId, fileName: result.record.fileName },
+      // The raw input carries the file's rows and names, and the file name is free text the coach
+      // chose (it may hold a player's name): keep them all out of `action_logs`.
+      redoInput: { kind: result.record.kind, teamId: result.record.teamId, importId: String(result.record.id) },
     }
   },
   async undo({ logEntry, ctx }) {

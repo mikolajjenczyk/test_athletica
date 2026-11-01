@@ -198,12 +198,13 @@ describe('athletes.daily_import.commit', () => {
       .rejects.toMatchObject({ status: 400, body: { error: DAILY_IMPORT_ERRORS.missingColumns, columns: ['sessionNo', 'minutes', 'rpe'] } })
   })
 
-  it('keeps file rows and names out of the audit log redo input', async () => {
+  it('keeps file rows, names and the free-text file name out of the audit log', async () => {
     const { ctx } = makeCtx()
-    const { record } = await commit.execute({ kind: 'rpe', fileName: 'a.csv', fileHash: HASH, table: table([['Jan Kowalski', '20.10.2026', 1, 60, 7]]) }, ctx)
+    const { record } = await commit.execute({ kind: 'rpe', fileName: 'rpe-nowak.csv', fileHash: HASH, table: table([['Jan Kowalski', '20.10.2026', 1, 60, 7]]) }, ctx)
     const log = await commit.buildLog!({ result: { record }, snapshots: {}, input: {}, ctx } as never)
     expect(JSON.stringify(log)).not.toContain('Kowalski')
-    expect((log as { redoInput?: unknown }).redoInput).toEqual({ kind: 'rpe', teamId: TEAM, fileName: 'a.csv' })
+    expect(JSON.stringify(log)).not.toContain('nowak')
+    expect((log as { redoInput?: unknown }).redoInput).toEqual({ kind: 'rpe', teamId: TEAM, importId: String(record.id) })
   })
 })
 
