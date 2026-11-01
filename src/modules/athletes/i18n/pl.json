@@ -122,6 +122,8 @@
   "athletes.dailyImport.errors.fileTooLarge": "Plik jest za duży (najwyżej 2 MB).",
   "athletes.dailyImport.errors.fileUnreadable": "Nie udało się odczytać pliku.",
   "athletes.dailyImport.errors.importNotFound": "Nie znaleziono importu.",
+  "athletes.dailyImport.errors.invalidAssignments": "Nieprawidłowe przypisania nazwisk.",
+  "athletes.dailyImport.errors.invalidKind": "Nieobsługiwany rodzaj pliku danych dziennych.",
   "athletes.dailyImport.errors.missingColumns": "W pliku brakuje wymaganych kolumn.",
   "athletes.dailyImport.errors.noHeader": "W pliku nie ma wiersza nagłówków.",
   "athletes.dailyImport.errors.noValidRows": "W pliku nie ma żadnego poprawnego wiersza — nic nie zapisano.",

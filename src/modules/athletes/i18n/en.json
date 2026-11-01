@@ -122,6 +122,8 @@
   "athletes.dailyImport.errors.fileTooLarge": "The file is too large (2 MB at most).",
   "athletes.dailyImport.errors.fileUnreadable": "The file could not be read.",
   "athletes.dailyImport.errors.importNotFound": "Import not found.",
+  "athletes.dailyImport.errors.invalidAssignments": "Invalid name assignments.",
+  "athletes.dailyImport.errors.invalidKind": "Unsupported daily-data file kind.",
   "athletes.dailyImport.errors.missingColumns": "The file is missing required columns.",
   "athletes.dailyImport.errors.noHeader": "The file has no header row.",
   "athletes.dailyImport.errors.noValidRows": "The file has no valid row — nothing was saved.",
