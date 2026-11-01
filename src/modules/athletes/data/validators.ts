@@ -135,3 +135,42 @@ export type TestSessionStartInput = z.infer<typeof testSessionStartSchema>
 export type TestTrialInput = z.infer<typeof testTrialInputSchema>
 export type TestResultRecordInput = z.infer<typeof testResultRecordSchema>
 export type TestSessionFinishInput = z.infer<typeof testSessionFinishSchema>
+
+// ---------------------------------------------------------------------------
+// E01: daily-data imports (phase 1: RPE)
+// ---------------------------------------------------------------------------
+
+/** Phase 1 accepts `rpe` only; `wellbeing` arrives with phase 2. */
+export const DAILY_IMPORT_KINDS = ['rpe'] as const
+export const DAILY_IMPORT_MAX_ASSIGNMENTS = 200
+
+/** `{ "<name as in the file>": playerId | null }` — null/empty is "pomiń". */
+export const dailyImportAssignmentsSchema = z
+  .record(z.string().trim().min(1).max(200), z.string().uuid().nullable().or(z.literal('')))
+  .refine((value) => Object.keys(value).length <= DAILY_IMPORT_MAX_ASSIGNMENTS, 'athletes.validation.tooManyAssignments')
+
+const parsedCellSchema = z.union([z.string().max(10_000), z.number(), z.null()])
+
+export const parsedTableSchema = z.object({
+  headers: z.array(z.string().max(500)).max(100),
+  rows: z
+    .array(z.object({ line: z.number().int().min(1), cells: z.record(z.string().max(500), parsedCellSchema) }))
+    .max(5000),
+})
+
+export const dailyImportCommitSchema = z.object({
+  kind: z.enum(DAILY_IMPORT_KINDS),
+  teamId: z.string().uuid().nullable().optional(),
+  fileName: z.string().trim().min(1).max(255),
+  /** sha256 of the uploaded bytes — the file itself is never stored. */
+  fileHash: z.string().regex(/^[a-f0-9]{64}$/),
+  table: parsedTableSchema,
+  assignments: dailyImportAssignmentsSchema.default({}),
+})
+
+export const dailyImportUndoSchema = z.object({
+  importId: z.string().uuid(),
+})
+
+export type DailyImportCommitInput = z.infer<typeof dailyImportCommitSchema>
+export type DailyImportUndoInput = z.infer<typeof dailyImportUndoSchema>
