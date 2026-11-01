@@ -30,8 +30,8 @@ Trener wgrywa plik RPE (`.xlsx` lub `.csv`) ze swojego komputera, widzi przed za
 4. Logika podglądu: dopasowanie nazwisk w drużynie (normalizacja jak w E02), sesje drużyny i „Brak RPE”, korekty, odrzucenia z numerem i powodem, nieznane nazwiska.
 5. Komenda `athletes.daily_import.commit` (atomowo, idempotentnie po kluczu (zawodnik, data, numer sesji), korekty z `previous_*`, przypisania nazwisk z walidacją, undo ostatniego importu) + zdarzenie `athletes.daily_import.committed`.
 6. Trasy z `metadata` + OpenAPI: `POST /api/athletes/daily-imports/preview`, `POST /api/athletes/daily-imports/commit`, `POST /api/athletes/daily-imports/undo`, `GET /api/athletes/daily-imports`, `GET /api/athletes/training-sessions` (obciążenie wyliczane).
-7. Wspólny komponent podglądu importu (miejsce na panel dodatkowy) i `NameAssignmentPanel`; strona `/backend/athletes/daily/import?kind=rpe` (tylko komputer).
-8. Strona „Dane dzienne” (`/backend/athletes/daily`): zakładka RPE i historia importów z cofnięciem; i18n pl/en.
+7. Wspólny komponent podglądu importu (miejsce na panel dodatkowy) i `NameAssignmentPanel`; strona `/backend/daily/import?kind=rpe` (tylko komputer; konwencja modułu pomija id modułu w URL, jak `/backend/tests`).
+8. Strona „Dane dzienne” (`/backend/daily`): zakładka RPE i historia importów z cofnięciem; i18n pl/en.
 9. Testy jednostkowe i integracyjne (TEST-001…004, 006 RPE, 010, 011, 013).
 
 ## Risks
@@ -52,6 +52,6 @@ Trener wgrywa plik RPE (`.xlsx` lub `.csv`) ze swojego komputera, widzi przed za
 - [x] 1.4 Logika podglądu importu — 2091456
 - [x] 1.5 Komenda zapisu importu, undo i zdarzenie — 62c5459
 - [x] 1.6 Trasy API i OpenAPI — 6802d43
-- [ ] 1.7 Komponent podglądu, przypisanie nazwisk i strona importu
-- [ ] 1.8 Strona „Dane dzienne” i tłumaczenia
+- [x] 1.7 Komponent podglądu, przypisanie nazwisk i strona importu — 51cb18c
+- [x] 1.8 Strona „Dane dzienne” i tłumaczenia — 3f1ec71
 - [ ] 1.9 Testy jednostkowe i integracyjne
