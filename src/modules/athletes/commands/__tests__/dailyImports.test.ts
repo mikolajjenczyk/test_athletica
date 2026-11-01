@@ -79,6 +79,12 @@ function makeCtx(state: { sessions?: SessionRow[]; imports?: Array<Record<string
     flush: jest.fn<AnyFn>(async () => {
       flushes += 1
     }),
+    nativeUpdate: jest.fn<AnyFn>(async (entity: unknown, where: unknown, data: unknown) => {
+      if (entity !== AthletesTrainingSession) return 0
+      const row = sessions.find((candidate) => candidate.id === (where as { id: string }).id)
+      if (row) Object.assign(row, data as Record<string, unknown>)
+      return row ? 1 : 0
+    }),
     transactional: jest.fn<AnyFn>(async (fn: unknown) => (fn as (tem: unknown) => Promise<unknown>)(em)),
   }
   em.fork = () => em
@@ -238,6 +244,10 @@ describe('daily import undo', () => {
     ]
     const earlier = { ...baseImport, id: IMPORT_A, createdAt: earlierWrittenAt, undoState: [{ id: 's-fix', op: 'insert', writtenAt: earlierWrittenAt }] as DailyImportUndoEntry[] }
     const { em } = makeCtx({ sessions: rows, imports: [{ ...baseImport, undoState: chained }, earlier] })
+    // Like the entity's `onUpdate` hook: every flush stamps changed rows with a new `updated_at`.
+    em.flush.mockImplementation(async () => {
+      for (const row of rows) row.updatedAt = new Date()
+    })
     await undoDailyImport(em as never, { tenantId: TENANT, organizationId: CLUB }, IMPORT_B, ACTOR)
     expect((rows[1].updatedAt as Date).toISOString()).toBe(earlierWrittenAt)
     expect(isUndoFresh(earlier.undoState, new Map(rows.map((row) => [row.id, row as never])), IMPORT_A)).toBe(true)

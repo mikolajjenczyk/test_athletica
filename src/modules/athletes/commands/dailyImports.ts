@@ -316,6 +316,7 @@ export async function undoDailyImport(
     const byId = new Map(rows.map((row) => [String(row.id), row]))
     if (!isUndoFresh(entries, byId, String(locked.id))) throw conflict(DAILY_IMPORT_COMMAND_ERRORS.changedSinceImport)
 
+    const restoredVersions: Array<{ id: string; updatedAt: Date }> = []
     for (const entry of entries) {
       const row = byId.get(entry.id) as AthletesTrainingSession
       if (entry.op === 'insert') {
@@ -330,13 +331,22 @@ export async function undoDailyImport(
       row.previousRpe = entry.before.previousRpe
       row.correctedAt = entry.before.correctedAt ? new Date(entry.before.correctedAt) : null
       row.importId = entry.before.importId
-      // Back to the version the earlier import left, so that import stays undoable.
-      row.updatedAt = entry.before.updatedAt ? new Date(entry.before.updatedAt) : now
+      row.updatedAt = now
+      if (entry.before.updatedAt) restoredVersions.push({ id: entry.id, updatedAt: new Date(entry.before.updatedAt) })
     }
     locked.undoneAt = now
     locked.undoneByUserId = userId
     locked.updatedAt = now
     await tem.flush()
+    // Back to the version the earlier import left, so that import stays undoable. `updated_at`
+    // has an `onUpdate` hook that a flush would apply, hence the native update after it.
+    for (const restored of restoredVersions) {
+      await tem.nativeUpdate(
+        AthletesTrainingSession,
+        { id: restored.id, tenantId: scope.tenantId, organizationId: scope.organizationId } as FilterQuery<AthletesTrainingSession>,
+        { updatedAt: restored.updatedAt },
+      )
+    }
     return locked
   })
 }
