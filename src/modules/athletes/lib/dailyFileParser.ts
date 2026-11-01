@@ -14,6 +14,8 @@
  * Errors are {@link DailyFileError} with a translatable `code` and an HTTP status.
  */
 
+import { inflateRawSync } from 'node:zlib'
+
 export const MAX_FILE_BYTES = 2 * 1024 * 1024
 export const MAX_DATA_ROWS = 5000
 export const MAX_XLSX_UNCOMPRESSED_BYTES = 64 * 1024 * 1024
@@ -244,9 +246,10 @@ export function parseCsv(text: string): ParsedTable {
 // ---------------------------------------------------------------------------
 
 /**
- * Sums the uncompressed sizes the zip central directory declares, without inflating
- * anything. A bomb that lies in its directory is still stopped by the inflater, which
- * rejects data longer than the declared size.
+ * Sums the uncompressed sizes the zip central directory declares and then proves them: every
+ * entry is inflated with an output cap equal to its declared size, so a bomb that lies in its
+ * directory is stopped after at most the declared bytes (the total of which is capped) instead
+ * of being fully inflated by the spreadsheet library first.
  */
 export function inspectZipDirectory(bytes: Uint8Array): { entries: number; uncompressedBytes: number } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
@@ -270,6 +273,7 @@ export function inspectZipDirectory(bytes: Uint8Array): { entries: number; uncom
   if (entries > MAX_XLSX_ENTRIES) throw new DailyFileError(DAILY_FILE_ERRORS.tooLarge, 413)
   let offset = directoryOffset
   let total = 0
+  const declared: Array<{ method: number; compressed: number; uncompressed: number; localOffset: number }> = []
   for (let n = 0; n < entries; n += 1) {
     if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) {
       throw new DailyFileError(DAILY_FILE_ERRORS.unreadable, 400)
@@ -278,12 +282,48 @@ export function inspectZipDirectory(bytes: Uint8Array): { entries: number; uncom
     if (uncompressed === 0xffffffff) throw new DailyFileError(DAILY_FILE_ERRORS.tooLarge, 413)
     total += uncompressed
     if (total > MAX_XLSX_UNCOMPRESSED_BYTES) throw new DailyFileError(DAILY_FILE_ERRORS.tooLarge, 413)
+    declared.push({
+      method: view.getUint16(offset + 10, true),
+      compressed: view.getUint32(offset + 20, true),
+      uncompressed,
+      localOffset: view.getUint32(offset + 42, true),
+    })
     const nameLength = view.getUint16(offset + 28, true)
     const extraLength = view.getUint16(offset + 30, true)
     const commentLength = view.getUint16(offset + 32, true)
     offset += 46 + nameLength + extraLength + commentLength
   }
+  for (const entry of declared) verifyZipEntrySize(bytes, view, entry)
   return { entries, uncompressedBytes: total }
+}
+
+/** Inflates one entry with its declared size as the hard output cap (stored = no inflation). */
+function verifyZipEntrySize(
+  bytes: Uint8Array,
+  view: DataView,
+  entry: { method: number; compressed: number; uncompressed: number; localOffset: number },
+): void {
+  const local = entry.localOffset
+  if (local + 30 > bytes.length || view.getUint32(local, true) !== 0x04034b50) {
+    throw new DailyFileError(DAILY_FILE_ERRORS.unreadable, 400)
+  }
+  const start = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true)
+  const end = start + entry.compressed
+  if (end > bytes.length) throw new DailyFileError(DAILY_FILE_ERRORS.unreadable, 400)
+  if (entry.method === 0) {
+    if (entry.compressed !== entry.uncompressed) throw new DailyFileError(DAILY_FILE_ERRORS.unreadable, 400)
+    return
+  }
+  if (entry.method !== 8) throw new DailyFileError(DAILY_FILE_ERRORS.unreadable, 400)
+  let inflated: Buffer
+  try {
+    inflated = inflateRawSync(bytes.subarray(start, end), { maxOutputLength: Math.max(1, entry.uncompressed) })
+  } catch (err) {
+    // More output than the directory declared: a lying zip bomb.
+    if ((err as { code?: string } | null)?.code === 'ERR_BUFFER_TOO_LARGE') throw new DailyFileError(DAILY_FILE_ERRORS.tooLarge, 413)
+    throw new DailyFileError(DAILY_FILE_ERRORS.unreadable, 400)
+  }
+  if (inflated.byteLength !== entry.uncompressed) throw new DailyFileError(DAILY_FILE_ERRORS.unreadable, 400)
 }
 
 type FormulaLike = { formula?: string; sharedFormula?: string; result?: unknown }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@jest/globals'
+import { deflateRawSync } from 'node:zlib'
 import ExcelJS from 'exceljs'
 import {
   DAILY_FILE_ERRORS,
@@ -117,6 +118,44 @@ describe('dailyFileParser — type, size and magic bytes', () => {
       expect((err as DailyFileError).code).toBe(DAILY_FILE_ERRORS.tooLarge)
       expect((err as DailyFileError).status).toBe(413)
     }
+  })
+
+  it('rejects a zip bomb that lies about its uncompressed size in the directory, before inflating it fully', async () => {
+    // 8 MB of zeros deflate to a few KB; the directory claims 100 bytes.
+    const name = utf8('xl/worksheets/sheet1.xml')
+    const data = deflateRawSync(Buffer.alloc(8 * 1024 * 1024))
+    const local = new Uint8Array(30 + name.length)
+    const lv = new DataView(local.buffer)
+    lv.setUint32(0, 0x04034b50, true)
+    lv.setUint16(8, 8, true)
+    lv.setUint16(26, name.length, true)
+    local.set(name, 30)
+    const central = new Uint8Array(46 + name.length)
+    const cv = new DataView(central.buffer)
+    cv.setUint32(0, 0x02014b50, true)
+    cv.setUint16(10, 8, true)
+    cv.setUint32(20, data.length, true)
+    cv.setUint32(24, 100, true)
+    cv.setUint16(28, name.length, true)
+    cv.setUint32(42, 0, true)
+    central.set(name, 46)
+    const directoryOffset = local.length + data.length
+    const eocd = new Uint8Array(22)
+    const ev = new DataView(eocd.buffer)
+    ev.setUint32(0, 0x06054b50, true)
+    ev.setUint16(8, 1, true)
+    ev.setUint16(10, 1, true)
+    ev.setUint32(12, central.length, true)
+    ev.setUint32(16, directoryOffset, true)
+    const bytes = new Uint8Array([...local, ...data, ...central, ...eocd])
+    await expectError(parseDailyFile({ fileName: 'rpe.xlsx', bytes }), DAILY_FILE_ERRORS.tooLarge, 413)
+  })
+
+  it('accepts a real xlsx whose entries inflate to exactly their declared sizes', async () => {
+    const bytes = await buildXlsx((sheet) => {
+      sheet.addRow(['Zawodnik', 'Data', 'Nr sesji', 'Minuty', 'RPE'])
+    })
+    expect(inspectZipDirectory(bytes).entries).toBeGreaterThan(0)
   })
 
   it('rejects a corrupt xlsx as unreadable', async () => {
